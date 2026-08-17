@@ -1,0 +1,643 @@
+   836→@router.post("/{thread_id}/runs", response_model=RunResponse)
+   837→@require_permission("runs", "create", owner_check=True, require_existing=True)
+   838→async def create_run(thread_id: ThreadId, body: RunCreateRequest, request: Request) -> RunResponse:
+   839→    """Create a background run (returns immediately)."""
+   840→    record = await start_run(body, thread_id, request)
+   841→    return _record_to_response(record)
+   842→
+   843→
+   844→@router.post("/{thread_id}/runs/stream")
+   845→@require_permission("runs", "create", owner_check=True, require_existing=True)
+   846→async def stream_run(thread_id: ThreadId, body: RunCreateRequest, request: Request) -> StreamingResponse:
+   847→    """Create a run and stream events via SSE.
+   848→
+   849→    The response includes a ``Content-Location`` header with the run's
+   850→    resource URL, matching the LangGraph Platform protocol.  The
+   851→    ``useStream`` React hook uses this to extract run metadata.
+   852→    """
+   853→    bridge = get_stream_bridge(request)
+   854→    run_mgr = get_run_manager(request)
+   855→    record = await start_run(body, thread_id, request)
+   856→
+   857→    return StreamingResponse(
+   858→        sse_consumer(bridge, record, request, run_mgr),
+   859→        media_type="text/event-stream",
+   860→        headers={
+   861→            "Cache-Control": "no-cache",
+   862→            "Connection": "keep-alive",
+   863→            "X-Accel-Buffering": "no",
+   864→            # LangGraph Platform includes run metadata in this header.
+   865→            # The SDK uses a greedy regex to extract the run id from this path,
+   866→            # so it must point at the canonical run resource without extra suffixes.
+   867→            "Content-Location": f"/api/threads/{thread_id}/runs/{record.run_id}",
+   868→        },
+   869→    )
+   870→
+   871→
+   872→@router.post("/{thread_id}/runs/wait", response_model=dict)
+   873→@require_permission("runs", "create", owner_check=True, require_existing=True)
+   874→async def wait_run(thread_id: ThreadId, body: RunCreateRequest, request: Request) -> dict:
+   875→    """Create a run and block until it completes, returning the final state."""
+   876→    bridge = get_stream_bridge(request)
+   877→    run_mgr = get_run_manager(request)
+   878→    record = await start_run(body, thread_id, request)
+   879→
+   880→    completed = True
+   881→    if record.task is not None:
+   882→        completed = await wait_for_run_completion(bridge, record, request, run_mgr)
+   883→
+   884→    if completed:
+   885→        try:
+   886→            accessor, config = build_checkpoint_state_accessor(
+   887→                request,
+   888→                thread_id=thread_id,
+   889→                assistant_id=body.assistant_id,
+   890→            )
+   891→            snapshot = await accessor.aget(config)
+   892→            snapshot_config = snapshot.config or {}
+   893→            if snapshot_config.get("configurable", {}).get("checkpoint_id"):
+   894→                return serialize_channel_values_for_api(snapshot.values)
+   895→        except Exception:
+   896→            logger.exception("Failed to fetch final state for run %s", record.run_id)
+   897→
+   898→    return {"status": record.status.value, "error": record.error}
+   899→
+   900→
+   901→@router.get("/{thread_id}/runs", response_model=list[RunResponse])
+   902→@require_permission("runs", "read", owner_check=True)
+   903→async def list_runs(thread_id: ThreadId, request: Request) -> list[RunResponse]:
+   904→    """List all runs for a thread."""
+   905→    run_mgr = get_run_manager(request)
+   906→    user_id = await get_current_user(request)
+   907→    records = await run_mgr.list_by_thread(thread_id, user_id=user_id)
+   908→    return [_record_to_response(r) for r in records]
+   909→
+   910→
+   911→@router.get("/{thread_id}/runs/{run_id}", response_model=RunResponse)
+   912→@require_permission("runs", "read", owner_check=True)
+   913→async def get_run(thread_id: ThreadId, run_id: str, request: Request) -> RunResponse:
+   914→    """Get details of a specific run."""
+   915→    run_mgr = get_run_manager(request)
+   916→    user_id = await get_current_user(request)
+   917→    record = await run_mgr.get(run_id, user_id=user_id)
+   918→    if record is None or record.thread_id != thread_id:
+   919→        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+   920→    return _record_to_response(record)
+   921→
+   922→
+   923→@router.post("/{thread_id}/runs/{run_id}/cancel")
+   924→@require_permission("runs", "cancel", owner_check=True, require_existing=True)
+   925→async def cancel_run(
+   926→    thread_id: ThreadId,
+   927→    run_id: str,
+   928→    request: Request,
+   929→    wait: bool = Query(default=False, description="Block until run completes after cancel"),
+   930→    action: Literal["interrupt", "rollback"] = Query(default="interrupt", description="Cancel action"),
+   931→) -> Response:
+   932→    """Cancel a running or pending run.
+   933→
+   934→    - action=interrupt: Stop execution, keep current checkpoint (can be resumed)
+   935→    - action=rollback: Stop execution, revert to pre-run checkpoint state
+   936→    - wait=true: Block until the run fully stops, return 204
+   937→    - wait=false: Return immediately with 202
+   938→
+   939→    In multi-worker deployments, a cancel landing on a non-owning worker
+   940→    durably notifies the owner when its lease is live, or takes over and
+   941→    terminalizes the run when that lease has expired.
+   942→    """
+   943→    run_mgr = get_run_manager(request)
+   944→    record = await run_mgr.get(run_id)
+   945→    if record is None or record.thread_id != thread_id:
+   946→        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+   947→
+   948→    outcome = await run_mgr.cancel(run_id, action=action)
+   949→
+   950→    # Success paths — the run was cancelled locally, durably requested from
+   951→    # a live owner, or taken over from a dead worker.
+   952→    if outcome in (
+   953→        CancelOutcome.cancelled,
+   954→        CancelOutcome.requested,
+   955→        CancelOutcome.taken_over,
+   956→    ):
+   957→        if wait and record.task is not None:
+   958→            try:
+   959→                await record.task
+   960→            except asyncio.CancelledError:
+   961→                pass
+   962→            return Response(status_code=204)
+   963→        if wait and outcome == CancelOutcome.requested:
+   964→            bridge = get_stream_bridge(request)
+   965→            if record.store_only and bridge.supports_cross_process:
+   966→                completed = await wait_for_run_completion(
+   967→                    bridge,
+   968→                    record,
+   969→                    request,
+   970→                    run_mgr,
+   971→                )
+   972→                if completed:
+   973→                    return Response(status_code=204)
+   974→        return Response(status_code=202)
+   975→
+   976→    if outcome == CancelOutcome.lease_valid_elsewhere:
+   977→        await _raise_lease_valid_elsewhere(run_id, run_mgr, record)
+   978→
+   979→    # not_cancellable, not_active_locally, unknown
+   980→    raise HTTPException(status_code=409, detail=_cancel_conflict_detail(run_id, record))
+   981→
+   982→
+   983→@router.get("/{thread_id}/runs/{run_id}/join")
+   984→@require_permission("runs", "read", owner_check=True)
+   985→async def join_run(thread_id: ThreadId, run_id: str, request: Request) -> StreamingResponse:
+   986→    """Join an existing run's SSE stream."""
+   987→    run_mgr = get_run_manager(request)
+   988→    record = await run_mgr.get(run_id)
+   989→    if record is None or record.thread_id != thread_id:
+   990→        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+   991→    bridge = get_stream_bridge(request)
+   992→    if record.store_only and not bridge.supports_cross_process:
+   993→        raise HTTPException(status_code=409, detail=f"Run {run_id} is not active on this worker and cannot be streamed")
+   994→
+   995→    return StreamingResponse(
+   996→        sse_consumer(bridge, record, request, run_mgr),
+   997→        media_type="text/event-stream",
+   998→        headers={
+   999→            "Cache-Control": "no-cache",
+  1000→            "Connection": "keep-alive",
+  1001→            "X-Accel-Buffering": "no",
+  1002→        },
+  1003→    )
+  1004→
+  1005→
+  1006→# Register GET and POST as separate routes so each method gets a unique OpenAPI
+  1007→# operationId. ``api_route(methods=["GET", "POST"])`` shares one route registration
+  1008→# across both methods, which makes FastAPI emit the same ``operationId`` twice and
+  1009→# warn about a duplicate operation id during OpenAPI generation.
+  1010→@router.get("/{thread_id}/runs/{run_id}/stream", response_model=None)
+  1011→@router.post("/{thread_id}/runs/{run_id}/stream", response_model=None)
+  1012→@require_permission("runs", "read", owner_check=True)
+  1013→async def stream_existing_run(
+  1014→    thread_id: ThreadId,
+  1015→    run_id: str,
+  1016→    request: Request,
+  1017→    action: Literal["interrupt", "rollback"] | None = Query(default=None, description="Cancel action"),
+  1018→    wait: int = Query(default=0, description="Block until cancelled (1) or return immediately (0)"),
+  1019→):
+  1020→    """Join an existing run's SSE stream (GET), or cancel-then-stream (POST).
+  1021→
+  1022→    The LangGraph SDK's ``joinStream`` and ``useStream`` stop button both use
+  1023→    ``POST`` to this endpoint.  When ``action=interrupt`` or ``action=rollback``
+  1024→    is present the run is cancelled first; the response then streams any
+  1025→    remaining buffered events so the client observes a clean shutdown.
+  1026→    """
+  1027→    run_mgr = get_run_manager(request)
+  1028→    record = await run_mgr.get(run_id)
+  1029→    if record is None or record.thread_id != thread_id:
+  1030→        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+  1031→    bridge = get_stream_bridge(request)
+  1032→    if record.store_only and action is None and not bridge.supports_cross_process:
+  1033→        raise HTTPException(status_code=409, detail=f"Run {run_id} is not active on this worker and cannot be streamed")
+  1034→
+  1035→    # Cancel if an action was requested (stop-button / interrupt flow)
+  1036→    if action is not None:
+  1037→        outcome = await run_mgr.cancel(run_id, action=action)
+  1038→        if outcome == CancelOutcome.taken_over:
+  1039→            # The run was on another worker and is now marked ``error`` in the
+  1040→            # store.  There is no local stream to drain — return immediately so
+  1041→            # the client doesn't hang on an SSE subscription this worker can
+  1042→            # never serve.
+  1043→            return Response(status_code=202)
+  1044→        if outcome not in (CancelOutcome.cancelled, CancelOutcome.requested):
+  1045→            if outcome == CancelOutcome.lease_valid_elsewhere:
+  1046→                await _raise_lease_valid_elsewhere(run_id, run_mgr, record)
+  1047→            raise HTTPException(status_code=409, detail=_cancel_conflict_detail(run_id, record))
+  1048→        if outcome == CancelOutcome.requested and record.store_only and not bridge.supports_cross_process:
+  1049→            # The request is durable, but this bridge cannot observe the
+  1050→            # owner's stream. Returning 202 is safer than hanging forever on
+  1051→            # a process-local subscription.
+  1052→            return Response(status_code=202)
+  1053→        if wait and record.task is not None:
+  1054→            try:
+  1055→                await record.task
+  1056→            except (asyncio.CancelledError, Exception):
+  1057→                pass
+  1058→            return Response(status_code=204)
+  1059→        if wait and outcome == CancelOutcome.requested:
+  1060→            completed = await wait_for_run_completion(
+  1061→                bridge,
+  1062→                record,
+  1063→                request,
+  1064→                run_mgr,
+  1065→            )
+  1066→            return Response(status_code=204 if completed else 202)
+  1067→
+  1068→    return StreamingResponse(
+  1069→        sse_consumer(bridge, record, request, run_mgr),
+  1070→        media_type="text/event-stream",
+  1071→        headers={
+  1072→            "Cache-Control": "no-cache",
+  1073→            "Connection": "keep-alive",
+  1074→            "X-Accel-Buffering": "no",
+  1075→        },
+  1076→    )
+  1077→
+  1078→
+  1079→# ---------------------------------------------------------------------------
+  1080→# Messages / Events / Token usage endpoints
+  1081→# ---------------------------------------------------------------------------
+  1082→
+  1083→
+  1084→@router.get("/{thread_id}/messages")
+  1085→@require_permission("runs", "read", owner_check=True)
+  1086→async def list_thread_messages(
+  1087→    thread_id: ThreadId,
+  1088→    request: Request,
+  1089→    limit: int = Query(default=50, ge=1, le=200),
+  1090→    before_seq: int | None = Query(default=None, ge=1),
+  1091→    after_seq: int | None = Query(default=None, ge=1),
+  1092→) -> list[dict]:
+  1093→    """Return displayable messages for a thread (across all runs), with feedback attached."""
+  1094→    # Resolve the caller once; it is needed both to scope the feedback query
+  1095→    # below and to list the thread's runs for turn-duration injection.
+  1096→    user_id = await get_current_user(request)
+  1097→    run_mgr = get_run_manager(request)
+  1098→    hidden_run_ids = await _default_history_hidden_run_ids(run_mgr, thread_id, user_id=user_id)
+  1099→    messages, _ = await _scan_visible_thread_messages(
+  1100→        thread_id,
+  1101→        limit=limit,
+  1102→        before_seq=before_seq,
+  1103→        after_seq=after_seq,
+  1104→        request=request,
+  1105→        user_id=user_id,
+  1106→        hidden_run_ids=hidden_run_ids,
+  1107→        include_middleware=True,
+  1108→        include_extra=False,
+  1109→        batch_size=THREAD_MESSAGE_LEGACY_SCAN_BATCH,
+  1110→    )
+  1111→
+  1112→    # Find the last AI message per run_id. AI messages are persisted by
+  1113→    # RunJournal with event_type "llm.ai.response" (see runtime/journal.py);
+  1114→    # the event store returns that value verbatim, so match on it here.
+  1115→    last_ai_per_run: dict[str, int] = {}  # run_id -> index in messages list
+  1116→    for i, msg in enumerate(messages):
+  1117→        if msg.get("event_type") == "llm.ai.response":
+  1118→            last_ai_per_run[msg["run_id"]] = i
+  1119→
+  1120→    # Attach feedback to the last AI message of each run. Only query when there
+  1121→    # is an AI message to attach it to — threads with no completed AI turn yet
+  1122→    # would otherwise pay for a grouped feedback lookup whose result is unused.
+  1123→    feedback_map: dict[str, dict] = {}
+  1124→    if last_ai_per_run:
+  1125→        feedback_repo = get_feedback_repo(request)
+  1126→        feedback_map = await feedback_repo.list_by_thread_grouped(thread_id, user_id=user_id)
+  1127→
+  1128→    last_ai_indices = set(last_ai_per_run.values())
+  1129→    for i, msg in enumerate(messages):
+  1130→        if i in last_ai_indices:
+  1131→            run_id = msg["run_id"]
+  1132→            fb = feedback_map.get(run_id)
+  1133→            msg["feedback"] = (
+  1134→                {
+  1135→                    "feedback_id": fb["feedback_id"],
+  1136→                    "rating": fb["rating"],
+  1137→                    "comment": fb.get("comment"),
+  1138→                }
+  1139→                if fb
+  1140→                else None
+  1141→            )
+  1142→        else:
+  1143→            msg["feedback"] = None
+  1144→
+  1145→    runs = await run_mgr.list_by_thread(thread_id, user_id=user_id)
+  1146→    run_durations = compute_run_durations(runs)
+  1147→
+  1148→    if run_durations:
+  1149→        stamp_turn_duration_on_last_ai(messages, run_durations)
+  1150→
+  1151→    return messages
+  1152→
+  1153→
+  1154→async def _scan_visible_thread_messages(
+  1155→    thread_id: str,
+  1156→    *,
+  1157→    limit: int,
+  1158→    before_seq: int | None,
+  1159→    after_seq: int | None,
+  1160→    request: Request,
+  1161→    user_id: str | None,
+  1162→    hidden_run_ids: set[str],
+  1163→    include_middleware: bool,
+  1164→    include_extra: bool,
+  1165→    batch_size: int,
+  1166→) -> tuple[list[dict[str, Any]], bool]:
+  1167→    """Scan raw message rows until ``limit`` visible rows survive filtering."""
+  1168→    event_store = get_run_event_store(request)
+  1169→    needed = limit + 1 if include_extra else limit
+  1170→
+  1171→    if after_seq is not None:
+  1172→        visible: list[dict[str, Any]] = []
+  1173→        scan_after = after_seq
+  1174→        while len(visible) < needed:
+  1175→            raw = await event_store.list_messages(
+  1176→                thread_id,
+  1177→                limit=batch_size,
+  1178→                after_seq=scan_after,
+  1179→                user_id=user_id,
+  1180→            )
+  1181→            if not raw:
+  1182→                break
+  1183→            _validate_message_scan_rows(raw, thread_id=thread_id, scan_before=None, scan_after=scan_after)
+  1184→            reached_before_bound = False
+  1185→            for row in raw:
+  1186→                if before_seq is not None and row["seq"] >= before_seq:
+  1187→                    reached_before_bound = True
+  1188→                    break
+  1189→                if (not include_middleware and _is_thread_history_hidden_message_row(row)) or row.get("run_id") in hidden_run_ids:
+  1190→                    continue
+  1191→                visible.append(row)
+  1192→                if len(visible) == needed:
+  1193→                    break
+  1194→            next_scan_after = max(row["seq"] for row in raw)
+  1195→            if next_scan_after <= scan_after:
+  1196→                _raise_non_advancing_message_scan(thread_id=thread_id, scan_before=None, scan_after=scan_after, next_cursor=next_scan_after, row_count=len(raw))
+  1197→            scan_after = next_scan_after
+  1198→            if reached_before_bound or len(raw) < batch_size:
+  1199→                break
+  1200→        has_more = len(visible) > limit
+  1201→        return visible[:limit], has_more
+  1202→
+  1203→    visible_desc: list[dict[str, Any]] = []
+  1204→    scan_before = before_seq
+  1205→    while len(visible_desc) < needed:
+  1206→        raw = await event_store.list_messages(
+  1207→            thread_id,
+  1208→            limit=batch_size,
+  1209→            before_seq=scan_before,
+  1210→            user_id=user_id,
+  1211→        )
+  1212→        if not raw:
+  1213→            break
+  1214→        _validate_message_scan_rows(raw, thread_id=thread_id, scan_before=scan_before, scan_after=None)
+  1215→        for row in reversed(raw):
+  1216→            if (not include_middleware and _is_thread_history_hidden_message_row(row)) or row.get("run_id") in hidden_run_ids:
+  1217→                continue
+  1218→            visible_desc.append(row)
+  1219→            if len(visible_desc) == needed:
+  1220→                break
+  1221→        next_scan_before = min(row["seq"] for row in raw)
+  1222→        if scan_before is not None and next_scan_before >= scan_before:
+  1223→            _raise_non_advancing_message_scan(thread_id=thread_id, scan_before=scan_before, scan_after=None, next_cursor=next_scan_before, row_count=len(raw))
+  1224→        scan_before = next_scan_before
+  1225→        if len(raw) < batch_size:
+  1226→            break
+  1227→    has_more = len(visible_desc) > limit
+  1228→    return list(reversed(visible_desc[:limit])), has_more
+  1229→
+  1230→
+  1231→def _validate_message_scan_rows(
+  1232→    rows: list[dict[str, Any]],
+  1233→    *,
+  1234→    thread_id: str,
+  1235→    scan_before: int | None,
+  1236→    scan_after: int | None,
+  1237→) -> None:
+  1238→    invalid_seq_rows = [row for row in rows if not isinstance(row.get("seq"), int)]
+  1239→    if invalid_seq_rows:
+  1240→        logger.error(
+  1241→            "Thread message scan found rows without sequence values: thread_id=%s scan_before=%s scan_after=%s row_count=%d invalid_count=%d",
+  1242→            thread_id,
+  1243→            scan_before,
+  1244→            scan_after,
+  1245→            len(rows),
+  1246→            len(invalid_seq_rows),
+  1247→        )
+  1248→        raise RuntimeError("Run event message rows are missing sequence values")
+  1249→
+  1250→
+  1251→def _raise_non_advancing_message_scan(
+  1252→    *,
+  1253→    thread_id: str,
+  1254→    scan_before: int | None,
+  1255→    scan_after: int | None,
+  1256→    next_cursor: int,
+  1257→    row_count: int,
+  1258→) -> None:
+  1259→    logger.error(
+  1260→        "Thread message scan cursor did not advance: thread_id=%s scan_before=%s scan_after=%s next_cursor=%s row_count=%d",
+  1261→        thread_id,
+  1262→        scan_before,
+  1263→        scan_after,
+  1264→        next_cursor,
+  1265→        row_count,
+  1266→    )
+  1267→    raise RuntimeError("Run event message scan did not advance its cursor")
+  1268→
+  1269→
+  1270→async def _scan_thread_message_page(
+  1271→    thread_id: str,
+  1272→    *,
+  1273→    limit: int,
+  1274→    before_seq: int | None,
+  1275→    request: Request,
+  1276→    user_id: str | None,
+  1277→) -> tuple[list[dict[str, Any]], bool]:
+  1278→    """Select the newest ``limit + 1`` page-eligible rows before a cursor."""
+  1279→    run_mgr = get_run_manager(request)
+  1280→    hidden_run_ids = await _default_history_hidden_run_ids(run_mgr, thread_id, user_id=user_id)
+  1281→    return await _scan_visible_thread_messages(
+  1282→        thread_id,
+  1283→        limit=limit,
+  1284→        before_seq=before_seq,
+  1285→        after_seq=None,
+  1286→        request=request,
+  1287→        user_id=user_id,
+  1288→        hidden_run_ids=hidden_run_ids,
+  1289→        include_middleware=False,
+  1290→        include_extra=True,
+  1291→        batch_size=THREAD_MESSAGE_PAGE_SCAN_BATCH,
+  1292→    )
+  1293→
+  1294→
+  1295→async def _enrich_thread_message_page(
+  1296→    thread_id: str,
+  1297→    rows: list[dict[str, Any]],
+  1298→    *,
+  1299→    request: Request,
+  1300→    user_id: str | None,
+  1301→) -> list[dict[str, Any]]:
+  1302→    """Attach run-scoped duration and feedback without mutating store rows."""
+  1303→    data = deepcopy(rows)
+  1304→    if not data:
+  1305→        return data
+  1306→
+  1307→    run_ids = {row["run_id"] for row in data if isinstance(row.get("run_id"), str)}
+  1308→    run_mgr = get_run_manager(request)
+  1309→    records = await run_mgr.get_many_by_thread(thread_id, run_ids, user_id=user_id)
+  1310→    run_durations = compute_run_durations(records.values())
+  1311→
+  1312→    event_store = get_run_event_store(request)
+  1313→    last_ai_seq_by_run = await event_store.get_last_visible_ai_seq_by_run(thread_id, run_ids, user_id=user_id)
+  1314→    feedback_map: dict[str, dict] = {}
+  1315→    feedback_run_ids = {run_id for row in data if isinstance((run_id := row.get("run_id")), str) and row.get("seq") == last_ai_seq_by_run.get(run_id)}
+  1316→    if feedback_run_ids:
+  1317→        feedback_repo = get_feedback_repo(request)
+  1318→        feedback_map = await feedback_repo.list_by_run_ids(thread_id, feedback_run_ids, user_id=user_id)
+  1319→
+  1320→    for row in data:
+  1321→        run_id = row.get("run_id")
+  1322→        row["feedback"] = None
+  1323→        if row.get("seq") == last_ai_seq_by_run.get(run_id):
+  1324→            feedback = feedback_map.get(run_id)
+  1325→            if feedback:
+  1326→                row["feedback"] = {
+  1327→                    "feedback_id": feedback["feedback_id"],
+  1328→                    "rating": feedback["rating"],
+  1329→                    "comment": feedback.get("comment"),
+  1330→                }
+  1331→
+  1332→    # ``turn_duration`` is the run's wall-clock lifetime, not model thinking
+  1333→    # time — stamp it on the run's LAST visible AI message only so the UI does
+  1334→    # not repeat the same number on every intermediate AI message of a
+  1335→    # multi-step turn (#4152). The legacy ``GET /messages`` and ``/history``
+  1336→    # endpoints already use ``stamp_turn_duration_on_last_ai``; the page
+  1337→    # endpoint was inlining the equivalent loop but stamping every AI row,
+  1338→    # which #4163 fixed for the other paths and missed here.
+  1339→    stamp_turn_duration_on_last_ai(data, run_durations)
+  1340→    return data
+  1341→
+  1342→
+  1343→@router.get("/{thread_id}/messages/page", response_model=ThreadMessagesPageResponse)
+  1344→@require_permission("runs", "read", owner_check=True)
+  1345→async def list_thread_messages_page(
+  1346→    thread_id: ThreadId,
+  1347→    request: Request,
+  1348→    limit: int = Query(default=50, ge=1, le=200),
+  1349→    before_seq: int | None = Query(default=None, ge=1),
+  1350→) -> ThreadMessagesPageResponse:
+  1351→    """Return a backward page ordered by the thread-global event sequence."""
+  1352→    if "after_seq" in request.query_params:
+  1353→        raise HTTPException(status_code=422, detail="after_seq is not supported by this backward-only endpoint")
+  1354→
+  1355→    user_id = await get_current_user(request)
+  1356→    rows, has_more = await _scan_thread_message_page(
+  1357→        thread_id,
+  1358→        limit=limit,
+  1359→        before_seq=before_seq,
+  1360→        request=request,
+  1361→        user_id=user_id,
+  1362→    )
+  1363→    data = await _enrich_thread_message_page(thread_id, rows, request=request, user_id=user_id)
+  1364→    return ThreadMessagesPageResponse(
+  1365→        data=data,
+  1366→        has_more=has_more,
+  1367→        next_before_seq=data[0]["seq"] if has_more else None,
+  1368→    )
+  1369→
+  1370→
+  1371→@router.get("/{thread_id}/runs/{run_id}/messages")
+  1372→@require_permission("runs", "read", owner_check=True)
+  1373→async def list_run_messages(
+  1374→    thread_id: ThreadId,
+  1375→    run_id: str,
+  1376→    request: Request,
+  1377→    limit: int = Query(default=50, le=200, ge=1),
+  1378→    before_seq: int | None = Query(default=None, ge=1),
+  1379→    after_seq: int | None = Query(default=None, ge=1),
+  1380→) -> dict:
+  1381→    """Return paginated messages for a specific run.
+  1382→
+  1383→    Response: { data: [...], has_more: bool }
+  1384→    """
+  1385→    event_store = get_run_event_store(request)
+  1386→    rows = await event_store.list_messages_by_run(
+  1387→        thread_id,
+  1388→        run_id,
+  1389→        limit=limit + 1,
+  1390→        before_seq=before_seq,
+  1391→        after_seq=after_seq,
+  1392→    )
+  1393→    data, has_more = trim_run_message_page(rows, limit=limit, after_seq=after_seq)
+  1394→
+  1395→    if data:
+  1396→        run_mgr = get_run_manager(request)
+  1397→        record = await run_mgr.get(run_id)
+  1398→        if record:
+  1399→            durations = compute_run_durations([record])
+  1400→            if durations:
+  1401→                stamp_turn_duration_on_last_ai(data, durations)
+  1402→
+  1403→    return {"data": data, "has_more": has_more}
+  1404→
+  1405→
+  1406→@router.get("/{thread_id}/runs/{run_id}/events")
+  1407→@require_permission("runs", "read", owner_check=True)
+  1408→async def list_run_events(
+  1409→    thread_id: ThreadId,
+  1410→    run_id: str,
+  1411→    request: Request,
+  1412→    event_types: str | None = Query(default=None),
+  1413→    task_id: str | None = Query(default=None),
+  1414→    limit: int = Query(default=500, ge=1, le=2000),
+  1415→    after_seq: int | None = Query(default=None, ge=1),
+  1416→) -> list[dict]:
+  1417→    """Return the full event stream for a run (debug/audit).
+  1418→
+  1419→    ``task_id`` + ``after_seq`` let the subtask card page through one subagent
+  1420→    task's persisted steps without the run-wide ``limit`` truncating the tail (#3779).
+  1421→    """
+  1422→    event_store = get_run_event_store(request)
+  1423→    types = event_types.split(",") if event_types else None
+  1424→    events = await event_store.list_events(
+  1425→        thread_id,
+  1426→        run_id,
+  1427→        event_types=types,
+  1428→        task_id=task_id,
+  1429→        limit=limit,
+  1430→        after_seq=after_seq,
+  1431→    )
+  1432→    return [
+  1433→        {
+  1434→            **event,
+  1435→            "metadata": redact_metadata_secrets(event.get("metadata")),
+  1436→        }
+  1437→        if isinstance(event, dict) and "metadata" in event
+  1438→        else event
+  1439→        for event in events
+  1440→    ]
+  1441→
+  1442→
+  1443→@router.get("/{thread_id}/runs/{run_id}/workspace-changes")
+  1444→@require_permission("runs", "read", owner_check=True)
+  1445→async def get_run_workspace_changes(
+  1446→    thread_id: ThreadId,
+  1447→    run_id: str,
+  1448→    request: Request,
+  1449→    include_files: bool = Query(default=True),
+  1450→    include_diff: bool = Query(default=True),
+  1451→) -> dict:
+  1452→    """Return workspace/output file changes recorded for one run."""
+  1453→    event_store = get_run_event_store(request)
+  1454→    return await get_workspace_changes_response(
+  1455→        event_store,
+  1456→        thread_id,
+  1457→        run_id,
+  1458→        include_files=include_files,
+  1459→        include_diff=include_diff,
+  1460→    )
+  1461→
+  1462→
+  1463→@router.get("/{thread_id}/token-usage", response_model=ThreadTokenUsageResponse)
+  1464→@require_permission("threads", "read", owner_check=True)
+  1465→async def thread_token_usage(
+  1466→    thread_id: ThreadId,
+  1467→    request: Request,
+  1468→    include_active: bool = Query(default=False, description="Include running run progress snapshots"),
+  1469→) -> ThreadTokenUsageResponse:
+  1470→    """Thread-level token usage aggregation."""
+  1471→    run_store = get_run_store(request)
+  1472→    if include_active:
+  1473→        agg = await run_store.aggregate_tokens_by_thread(thread_id, include_active=True)
+  1474→    else:
+  1475→        agg = await run_store.aggregate_tokens_by_thread(thread_id)
+  1476→    context_usage = await build_context_usage(request, thread_id, run_store)
+  1477→    return ThreadTokenUsageResponse(thread_id=thread_id, context_usage=context_usage, **agg)
+  1478→
