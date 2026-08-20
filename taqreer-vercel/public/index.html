@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SickLeaves - Seha</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="app.js?v=36"></script>
+    <style>
+        /* Logo Auto-Adjust */
+        #pdf-hospital-logo {
+            max-height: 80px;
+            max-width: 220px;
+            object-fit: contain;
+        }
+        /* Dashboard layout fix */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Dashboard Screen -->
+        <section id="dashboard-screen" class="screen active">
+            <header class="dashboard-header">
+                <div class="header-right">
+                    <div class="dashboard-logo-frame">
+                        <img src="https://i.ibb.co/60qYxGQ/image-not-found.png" alt="Logo" id="dashboard-logo">
+                    </div>
+                </div>
+
+                <div class="header-center">
+                    <div class="status-badge" id="sub-status-badge">نشط - متبقي 0 يوم</div>
+                    <button class="btn-renew" onclick="app.navigate('packages')">تجديد</button>
+                </div>
+
+                <div class="header-left">
+                    <div class="balance-card">
+                        <span>رصيدك: <strong id="points-balance-display">0</strong> نقطة</span>
+                        <span class="coin-icon">🪙</span>
+                    </div>
+                </div>
+                <span id="points-balance" style="display:none;">0</span>
+            </header>
+            
+            <div class="reports-header" style="text-align: center; margin-bottom: 15px; padding: 0 10px;">
+                <h2 style="color: var(--primary-dark); margin-bottom: 10px;">سجل التقارير</h2>
+                <input type="text" id="report-search" placeholder="🔍 بحث باسم المريض أو الهوية..." 
+                    onkeyup="app.searchReports()" 
+                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-family: 'Tajawal', sans-serif;">
+            </div>
+
+            <main class="reports-list" id="reports-list">
+                <!-- Report Cards will be injected here -->
+            </main>
+
+            <!-- Floating Action Button & Menu -->
+            <div class="fab-container" id="fab-menu">
+                <button type="button" class="fab" id="fab-main" onclick="app.toggleFab()">+</button>
+                <div class="fab-menu-items" id="fab-menu-items">
+                    <div class="fab-menu-item" onclick="app.startForm('companion')">
+                        مرافقة مريض 👥
+                    </div>
+                    <div class="fab-menu-item" onclick="app.startForm('sickleave')">
+                        إجازة مرضية 🤒
+                    </div>
+                </div>
+            </div>
+            <div class="overlay" id="fab-overlay" onclick="app.toggleFab()"></div>
+        </section>
+
+        <!-- Packages Screen -->
+        <section id="packages-screen" class="screen">
+            <header class="app-header">
+                <h2>باقات الاشتراك والشحن</h2>
+                <button class="btn-back" onclick="app.navigate('dashboard')">❯</button>
+            </header>
+
+            <main class="packages-container">
+                <div class="package-section">
+                    <h3 class="section-title">📅 الاشتراك الشهري اللامحدود</h3>
+                    <div class="package-card" onclick="app.buyPackage('Month 1')">
+                        <div class="package-details">
+                            <h4>Month 1</h4>
+                            <p>صلاحية 30 يوم (إنشاء تقارير غير محدود)</p>
+                            <div class="referral-bonus-badge">
+                                🎁 + منح 50 نقطة إضافية للشخص الذي أحالك
+                            </div>
+                        </div>
+                        <div class="package-price">100<br>ريال</div>
+                    </div>
+                </div>
+                
+                <div class="package-section" style="margin-top: 25px;">
+                    <h3 class="section-title">🪙 حزم شحن النقاط</h3>
+                    
+                    <div class="package-card" onclick="app.buyPackage('Basic')">
+                        <div class="package-details">
+                            <h4>حزمة النقاط الأساسية (30 نقطة)</h4>
+                            <p>تمنحك 30 نقطة (بدون تاريخ انتهاء)</p>
+                            <div class="referral-bonus-badge">
+                                🎁 + منح 10 نقطة إضافية للشخص الذي أحالك
+                            </div>
+                        </div>
+                        <div class="package-price">20<br>ريال</div>
+                    </div>
+
+                    <div class="package-card recommended" onclick="app.buyPackage('Recommended')">
+                        <div class="package-details">
+                            <h4>حزمة النقاط الموصى بها (100 نقطة)</h4>
+                            <p>تمنحك 100 نقطة (بدون تاريخ انتهاء)</p>
+                            <div class="referral-bonus-badge">
+                                🎁 + منح 25 نقطة إضافية للشخص الذي أحالك
+                            </div>
+                        </div>
+                        <div class="package-price">50<br>ريال</div>
+                    </div>
+
+                    <div class="package-card" onclick="app.buyPackage('Advanced')">
+                        <div class="package-details">
+                            <h4>حزمة النقاط المتقدمة (200 نقطة)</h4>
+                            <p>تمنحك 200 نقطة (بدون تاريخ انتهاء)</p>
+                            <div class="referral-bonus-badge">
+                                🎁 + منح 50 نقطة إضافية للشخص الذي أحالك
+                            </div>
+                        </div>
+                        <div class="package-price">80<br>ريال</div>
+                    </div>
+                </div>
+                
+                <div style="text-align:center; padding:20px 0 30px 0;">
+                    <p style="text-align:center; font-size: 14px; color: #555;">الإصدار v32 (تخفيض حجم ملف التقرير)</p>
+                    <p style="font-size:0.9rem; margin-bottom:12px;">📞 يتم التفعيل يدوياً بالتحويل البنكي بالتواصل مع المالك:</p>
+                    <a href="https://t.me/zakmmm_1211" target="_blank" class="btn-renew" style="display:inline-block; padding:10px 22px; text-decoration:none; border-radius:20px; margin:0;">تواصل مع المالك للتفعيل 💬</a>
+                </div>
+            </main>
+        </section>
+
+        <!-- Form Wizard Screen -->
+        <section id="form-screen" class="screen">
+            <header class="app-header">
+                <h2 id="form-title">إصدار تقرير جديد</h2>
+                <button class="btn-back" onclick="app.navigate('dashboard')">❯</button>
+            </header>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="form-progress"></div>
+            </div>
+
+            <form id="report-form">
+                <!-- Step 1: Dates -->
+                <div class="form-step active" id="step-1">
+                    <div class="form-group">
+                        <label>نوع التقرير</label>
+                        <select id="leave_type" required>
+                            <option value="GSL">GSL (حكومي)</option>
+<option value="PSL">PSL (خاص)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="dates-row">
+                        <div class="form-group half">
+                            <label>تاريخ الدخول</label>
+                            <input type="date" id="admission_date" required>
+                        </div>
+                        <div class="form-group half">
+                            <label>تاريخ الخروج</label>
+                            <input type="date" id="discharge_date" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>مدة الإجازة (بالأيام)</label>
+                        <input type="number" id="duration" value="1" min="1" required>
+                    </div>
+
+                    <div class="dates-row">
+                        <div class="form-group half">
+                            <label>تاريخ إصدار التقرير</label>
+                            <input type="date" id="issue_date" required>
+                        </div>
+                        <div class="form-group half">
+                            <label>وقت الإصدار</label>
+                            <input type="time" id="issue_time" required>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-next" onclick="app.nextStep()">التالي</button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Patient Info -->
+                <div class="form-step" id="step-2">
+                    <div class="form-group">
+                        <label>رقم الهوية / الإقامة</label>
+                        <input type="text" id="national_id" placeholder="1xxxxxxxxx أو 2xxxxxxxxx" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>اسم المريض (عربي)</label>
+                        <input type="text" id="patient_name_ar" placeholder="الاسم الرباعي" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>اسم المريض (إنجليزي)</label>
+                        <input type="text" id="patient_name_en" placeholder="Full Name" dir="ltr" oninput="this.value = this.value.toUpperCase()" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>الجنسية</label>
+                        <input type="text" id="nationality" list="nationality_list" placeholder="السعودية" value="السعودية" required>
+<datalist id="nationality_list"></datalist>
+
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>جهة العمل</label>
+                        <input type="text" id="employer" placeholder="اسم الجهة">
+                    </div>
+
+                    <!-- Escort Fields (Hidden by default) -->
+                    <div id="escort-fields" style="display:none;">
+                        <h3 class="section-subtitle">بيانات المرافق</h3>
+                        <div class="form-group">
+                            <label>اسم المرافق (عربي)</label>
+                            <input type="text" id="escort_name_ar" placeholder="الاسم الرباعي">
+                        </div>
+                        <div class="form-group">
+                            <label>اسم المرافق (إنجليزي)</label>
+                            <input type="text" id="escort_name_en" placeholder="Full Name" dir="ltr" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="dates-row">
+                            <div class="form-group half">
+                                <label>صلة القرابة (عربي)</label>
+                                <input type="text" id="relation_ar" placeholder="مثال: ابن، زوجة">
+                            </div>
+                            <div class="form-group half">
+                                <label>صلة القرابة (إنجليزي)</label>
+                                <input type="text" id="relation_en" placeholder="e.g. Son, Wife">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions dual">
+                        <button type="button" class="btn-next" onclick="app.nextStep()">التالي</button>
+                        <button type="button" class="btn-prev" onclick="app.prevStep()">السابق</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Hospital & Doctor -->
+                <div class="form-step" id="step-3">
+                    <div class="form-group">
+                        <label>اسم الممارس/الطبيب (عربي)</label>
+                        <input type="text" id="doctor_name_ar" required>
+                    </div>
+                    <div class="form-group">
+                        <label>اسم الممارس/الطبيب (إنجليزي)</label>
+                        <input type="text" id="doctor_name_en" dir="ltr" oninput="this.value = this.value.toUpperCase()" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>المسمى الوظيفي (عربي)</label>
+                        <input type="text" id="job_title_ar" value="طبيب عام" required>
+                    </div>
+                    <div class="form-group">
+                        <label>المسمى الوظيفي (إنجليزي)</label>
+                        <input type="text" id="job_title_en" value="General" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>المستشفى (عربي)</label>
+                        <input type="text" id="hospital_ar" list="hospital_list" placeholder="ابحث أو اكتب الاسم..." required>
+<datalist id="hospital_list"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>المستشفى (إنجليزي)</label>
+                        <input type="text" id="hospital_en" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>نوع المستشفى</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="hospital_type" value="gov" checked onchange="app.toggleLicense()"> حكومي
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="hospital_type" value="private" onchange="app.toggleLicense()"> خاص
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="license-field" style="display:none;">
+                        <label>رقم الترخيص (يظهر تحت اسم المستشفى)</label>
+                        <input type="text" id="license_number" placeholder="رقم ترخيص المستشفى الخاص">
+                    </div>
+
+                    <div class="form-group">
+                        <label>اختر شعار المستشفى (اختياري)</label>
+                        <input type="file" id="hospital_logo" accept="image/png, image/jpeg" class="file-input">
+                        <small style="color:#777; display:block; margin-top:5px; font-size:0.8rem;">يفضل صورة بخلفية شفافة (PNG) بحجم أقل من 2MB</small>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="include_qr" checked style="width: auto;">
+                        <label for="include_qr" style="margin: 0;">تضمين الباركود (QR Code) في التقرير</label>
+                    </div>
+
+                    <div class="form-actions dual">
+                        <button type="button" class="btn-submit" onclick="app.submitForm()">إصدار التقرير (v15)</button>
+                        <button type="button" class="btn-prev" onclick="app.prevStep()">السابق</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- Success Screen -->
+        <section id="success-screen" class="screen">
+            <header class="app-header" style="justify-content: flex-end; padding-left: 20px;">
+                <button class="btn-back" style="font-size: 20px; font-weight: bold; background: none; border: none; color: #333;" onclick="app.closeApp()">⌄</button>
+            </header>
+            <main style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh; text-align: center; padding: 20px;">
+                <div style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid #7cb342; display: flex; align-items: center; justify-content: center; margin-bottom: 25px;">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#7cb342" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <h1 style="color: #112233; font-size: 26px; font-weight: bold; margin-bottom: 12px; font-family: 'Tajawal', sans-serif;">تم بنجاح!</h1>
+                <p style="color: #556677; font-size: 15px; margin-bottom: 40px; font-family: 'Tajawal', sans-serif;">تم إصدار التقرير وإرساله إليك في المحادثة.</p>
+                
+                <div style="display: flex; flex-direction: column; width: 100%; justify-content: center; align-items: center; gap: 12px; padding: 0 10px;">
+                    <div style="display: flex; width: 100%; gap: 12px;">
+                        <button style="flex: 1; padding: 14px; border-radius: 10px; background: #00a896; border: none; color: white; font-family: 'Tajawal', sans-serif; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onclick="app.downloadLastPdf()">&#x062A;&#x062D;&#x0645;&#x064A;&#x0644; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x1F4C4;</button>
+                        <button style="flex: 1; padding: 14px; border-radius: 10px; background: #216ba5; border: none; color: white; font-family: 'Tajawal', sans-serif; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onclick="app.printLastPdf()">&#x0637;&#x0628;&#x0627;&#x0639;&#x0629; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x1F5A8;&#xFE0F;</button>
+                    </div>
+                    <div style="display: flex; width: 100%; gap: 12px;">
+                        <button style="flex: 1; padding: 14px; background: none; border: none; color: #789; font-family: 'Tajawal', sans-serif; font-weight: bold; font-size: 15px; text-align: center; cursor: pointer;" onclick="app.navigate('dashboard')">العودة للرئيسية</button>
+                        <button style="flex: 1; padding: 14px; border-radius: 10px; background: #e74c3c; border: none; color: white; font-family: 'Tajawal', sans-serif; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onclick="app.closeApp()">إغلاق التطبيق</button>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- Custom Select Overlay -->
+        <div id="custom-select-overlay" class="custom-select-overlay">
+            <div class="custom-select-content">
+                <div class="custom-select-search-bar">
+                    <input type="text" id="custom-select-input" placeholder="ابحث عن..." oninput="app.filterCustomSelect()">
+                    <button class="custom-select-close" onclick="app.closeDropdown()">×</button>
+                </div>
+                <div class="custom-select-list" id="custom-select-list">
+                    <!-- options injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <p id="loading-text">جاري إصدار التقرير...</p>
+        </div>
+    </div>
+    
+    <div id="pdf-container" style="position: absolute; top: -9999px; left: -9999px; width: 800px;">
+        <!-- PDF template will be fetched or built dynamically -->
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Application Logic -->
+    <script src="app.js?v=36"></script>
+    <!-- Version Label for debugging -->
+    <script>
+        const vLabel = document.createElement('div');
+        vLabel.style.position = 'fixed';
+        vLabel.style.bottom = '5px';
+        vLabel.style.right = '5px';
+        vLabel.style.color = '#ccc';
+        vLabel.style.fontSize = '10px';
+        vLabel.style.pointerEvents = 'none';
+        vLabel.innerText = 'v27';
+        document.body.appendChild(vLabel);
+    </script>
+
+
+</body>
+</html>

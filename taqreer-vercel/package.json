@@ -1,0 +1,8 @@
+{
+  "name": "taqreer-murafiq-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}

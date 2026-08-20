@@ -1,0 +1,40 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "api/webhook/telegram.js": {
+      "includeFiles": "public/الشعارات/**",
+      "maxDuration": 60
+    },
+    "api/send-generated-pdf.js": {
+      "maxDuration": 30
+    },
+    "api/send-pdf.js": {
+      "maxDuration": 30
+    },
+    "api/send-existing-pdf.js": {
+      "maxDuration": 30
+    },
+    "api/generate-native-pdf.js": {
+      "maxDuration": 30
+    },
+    "api/setup.js": {
+      "maxDuration": 30
+    }
+  }
+}
