@@ -548,7 +548,7 @@ const app = {
             document.getElementById('pdf-name-en').innerText = escEn.toUpperCase();
             document.getElementById('pdf-name-ar').innerText = escAr;
             
-            document.getElementById('pdf-relation-row').style.display = 'table-row';
+            document.getElementById('pdf-relation-row').style.display = 'flex';
             document.getElementById('pdf-relation-en').innerText = document.getElementById('relation_en').value;
             document.getElementById('pdf-relation-ar').innerText = document.getElementById('relation_ar').value;
 
@@ -724,26 +724,27 @@ window.scrollTo(0, 0);
             // Generate PNG using dom-to-image to preserve exact browser Arabic text rendering (RTL/CTL)
             // html2canvas is known to mangle Arabic cursive joining.
             let pdfBase64;
+            const PDF_W = 842, PDF_H = 1191; // A4 at 72dpi
             try {
                 const scale = 2; // high quality
                 const dataUrl = await domtoimage.toJpeg(pdfElement, {
                     quality: 0.98,
                     bgcolor: '#ffffff',
-                    width: 794 * scale,
-                    height: 1122 * scale,
+                    width: PDF_W * scale,
+                    height: PDF_H * scale,
                     style: {
                         transform: 'scale(' + scale + ')',
                         transformOrigin: 'top left',
-                        width: '794px',
-                        height: '1122px'
+                        width: PDF_W + 'px',
+                        height: PDF_H + 'px'
                     }
                 });
 
                 // Create jsPDF and inject the perfectly rendered image
                 const jsPDFClass = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
                 if (!jsPDFClass) throw new Error("jsPDF not loaded");
-                const pdf = new jsPDFClass({ unit: 'px', format: [794, 1122], orientation: 'portrait', hotfixes: ["px_scaling"] });
-                pdf.addImage(dataUrl, 'JPEG', 0, 0, 794, 1122);
+                const pdf = new jsPDFClass({ unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait', hotfixes: ["px_scaling"] });
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, PDF_W, PDF_H);
                 pdfBase64 = pdf.output('datauristring');
             } catch (fallbackErr) {
                 console.error("dom-to-image failed, trying html2pdf:", fallbackErr);
@@ -752,7 +753,7 @@ window.scrollTo(0, 0);
                     filename: 'sickLeaves.pdf',
                     image: { type: 'jpeg', quality: 1 },
                     html2canvas: { scale: 2, useCORS: true, letterRendering: false },
-                    jsPDF: { unit: 'px', format: [794, 1122], orientation: 'portrait', hotfixes: ["px_scaling"] }
+                    jsPDF: { unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait', hotfixes: ["px_scaling"] }
                 };
                 pdfBase64 = await html2pdf().from(pdfElement).set(opt).outputPdf('datauristring');
             }
@@ -884,20 +885,28 @@ else document.body.removeAttribute('dir');
             return;
         }
         try {
-            const printWindow = window.open('', '_blank');
+            // Extract raw base64 data from data URI
+            const rawBase64 = app.state.lastPdfBase64.split(',')[1] || app.state.lastPdfBase64;
+            const binaryStr = atob(rawBase64);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            
+            const printWindow = window.open(blobUrl, '_blank');
             if (printWindow) {
-                printWindow.document.write(`
-                    <html><head><title>طباعة التقرير</title></head>
-                    <body style="margin:0;padding:0;">
-                    <iframe src="${app.state.lastPdfBase64}" style="width:100%;height:100%;border:none;" onload="this.contentWindow.print();"></iframe>
-                    </body></html>
-                `);
-                printWindow.document.close();
+                printWindow.addEventListener('load', function() {
+                    setTimeout(() => { printWindow.print(); }, 500);
+                });
             } else {
-                // Fallback: download instead
                 this.downloadLastPdf();
             }
+            // Clean up blob URL after some time
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
         } catch(e) {
+            console.error('Print failed:', e);
             this.downloadLastPdf();
         }
     },
