@@ -600,10 +600,14 @@ const app = {
         document.getElementById('pdf-day-date').innerText = this.formatDateLabel(issueDate);
 
         // 3. Build structured reportData for server-side PDF generation
-        const escAr = document.getElementById('escort_name_ar').value;
-        const escEn = document.getElementById('escort_name_en').value;
-        const relAr = document.getElementById('relation_ar').value;
-        const relEn = document.getElementById('relation_en').value;
+        const escArEl = document.getElementById('escort_name_ar');
+        const escEnEl = document.getElementById('escort_name_en');
+        const relArEl = document.getElementById('relation_ar');
+        const relEnEl = document.getElementById('relation_en');
+        const escAr = escArEl ? escArEl.value : '';
+        const escEn = escEnEl ? escEnEl.value : '';
+        const relAr = relArEl ? relArEl.value : '';
+        const relEn = relEnEl ? relEnEl.value : '';
 
         const reportDataPayload = {
             titleAr: type === 'companion' ? 'تقرير مرافق مريض' : 'تقرير إجازة مرضية',
