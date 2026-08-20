@@ -1,0 +1,1262 @@
+     1→const express = require('express');
+     2→const cors = require('cors');
+     3→process.env.NTBA_FIX_319 = 1;
+     4→const TelegramBot = require('node-telegram-bot-api');
+     5→const path = require('path');
+     6→const fs = require('fs').promises;
+     7→const crypto = require('crypto');
+     8→
+     9→// Configuration
+    10→if (!process.env.TELEGRAM_BOT_TOKEN) {
+    11→    throw new Error('TELEGRAM_BOT_TOKEN is required');
+    12→}
+    13→const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    14→const PORT = process.env.PORT || 3000;
+    15→const WEB_APP_URL = process.env.RENDER_EXTERNAL_URL || process.env.WEB_APP_URL;
+    16→if (!WEB_APP_URL) {
+    17→    throw new Error('WEB_APP_URL or RENDER_EXTERNAL_URL is required');
+    18→}
+    19→const WEB_APP_URL_CACHED = WEB_APP_URL + '?v=8';
+    20→const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+    21→const OWNER_CONTACT = `https://t.me/${ADMIN_USERNAME}`;
+    22→const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID || '';
+    23→
+    24→const app = express();
+    25→
+    26→// Middleware
+    27→app.use(cors());
+    28→app.use(express.json({ limit: '50mb' }));
+    29→app.use(express.static(__dirname));
+    30→
+    31→// Local database path
+    32→const subscriptionsPath = path.join(__dirname, 'subscriptions.json');
+    33→
+    34→// Helper to compute remaining subscription days
+    35→const getDaysRemaining = (expiresAt) => {
+    36→    if (!expiresAt) return 0;
+    37→    const now = new Date();
+    38→    const expires = new Date(expiresAt);
+    39→    const diffMs = expires - now;
+    40→    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    41→    return diffDays > 0 ? diffDays : 0;
+    42→};
+    43→
+    44→// Normalize subscriber object
+    45→const normalizeSubscription = (user) => {
+    46→    if (!user) return null;
+    47→    const now = new Date();
+    48→    
+    49→    // Migration helper: if they have subscriptionDays > 0 but no expires date
+    50→    if (user.subscriptionDays > 0 && !user.subscriptionExpires) {
+    51→        const expires = new Date(now.getTime() + user.subscriptionDays * 24 * 60 * 60 * 1000);
+    52→        user.subscriptionExpires = expires.toISOString();
+    53→    }
+    54→    
+    55→    user.subscriptionDays = getDaysRemaining(user.subscriptionExpires);
+    56→    return user;
+    57→};
+    58→
+    59→// Read local subscriptions.json
+    60→const loadLocalSubscriptions = async () => {
+    61→    try {
+    62→        const data = await fs.readFile(subscriptionsPath, 'utf-8');
+    63→        return JSON.parse(data);
+    64→    } catch (e) {
+    65→        return { subscriptions: {} };
+    66→    }
+    67→};
+    68→
+    69→// Write local subscriptions.json
+    70→const saveLocalSubscriptions = async (data) => {
+    71→    try {
+    72→        await fs.writeFile(subscriptionsPath, JSON.stringify(data, null, 2), 'utf-8');
+    73→    } catch (e) {
+    74→        console.error('Error writing local subscriptions.json:', e.message);
+    75→    }
+    76→};
+    77→
+    78→// Find user subscription by Chat ID or Telegram Username
+    79→const findSubscription = async (chatId, username, referrerId = null) => {
+    80→    const data = await loadLocalSubscriptions();
+    81→    const chatIdStr = chatId.toString();
+    82→    const cleanedUsername = username ? username.replace(/^@/, '').toLowerCase() : null;
+    83→    
+    84→    let userSub = null;
+    85→    let foundChatId = chatIdStr;
+    86→    
+    87→    // 1. Search by Username
+    88→    if (cleanedUsername) {
+    89→        for (const [cid, sub] of Object.entries(data.subscriptions)) {
+    90→            if (sub.username && sub.username.toLowerCase() === cleanedUsername) {
+    91→                userSub = sub;
+    92→                foundChatId = cid;
+    93→                break;
+    94→            }
+    95→        }
+    96→    }
+    97→    
+    98→    // 2. Search by Chat ID
+    99→    if (!userSub && data.subscriptions[chatIdStr]) {
+   100→        userSub = data.subscriptions[chatIdStr];
+   101→    }
+   102→    
+   103→    // 3. Normalize subscription or create new
+   104→    if (userSub) {
+   105→        userSub = normalizeSubscription(userSub);
+   106→        if (cleanedUsername && userSub.username !== cleanedUsername) {
+   107→            userSub.username = cleanedUsername;
+   108→        }
+   109→        
+   110→        // If we matched a pending Username subscription, migrate it to the active Chat ID
+   111→        if (foundChatId !== chatIdStr) {
+   112→            delete data.subscriptions[foundChatId];
+   113→            data.subscriptions[chatIdStr] = userSub;
+   114→        }
+   115→        
+   116→        data.subscriptions[chatIdStr].updatedAt = new Date().toISOString();
+   117→        await saveLocalSubscriptions(data);
+   118→    } else {
+   119→        const now = new Date();
+   120→        const expires = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+   121→        userSub = {
+   122→            points: 0,
+   123→            subscriptionDays: 365,
+   124→            subscriptionExpires: expires.toISOString(),
+   125→            username: cleanedUsername,
+   126→            reports: [],
+   127→            referredBy: referrerId ? referrerId.toString() : null,
+   128→            referralsCount: 0,
+   129→            referralPoints: 0,
+   130→            updatedAt: now.toISOString()
+   131→        };
+   132→        
+   133→        // If referred by someone, increment their referralsCount
+   134→        if (referrerId) {
+   135→            const rId = referrerId.toString();
+   136→            if (data.subscriptions[rId]) {
+   137→                data.subscriptions[rId].referralsCount = (data.subscriptions[rId].referralsCount || 0) + 1;
+   138→                data.subscriptions[rId].updatedAt = now.toISOString();
+   139→            }
+   140→        }
+   141→        
+   142→        data.subscriptions[chatIdStr] = userSub;
+   143→        await saveLocalSubscriptions(data);
+   144→    }
+   145→    
+   146→    return { chatId: chatIdStr, ...userSub };
+   147→};
+   148→
+   149→// Add or renew subscription for Username
+   150→const addSubscriptionByUsername = async (username, days) => {
+   151→    const data = await loadLocalSubscriptions();
+   152→    const cleaned = username.replace(/^@/, '').toLowerCase();
+   153→    
+   154→    let foundChatId = null;
+   155→    let userSub = null;
+   156→    
+   157→    for (const [cid, sub] of Object.entries(data.subscriptions)) {
+   158→        if (sub.username && sub.username.toLowerCase() === cleaned) {
+   159→            userSub = sub;
+   160→            foundChatId = cid;
+   161→            break;
+   162→        }
+   163→    }
+   164→    
+   165→    const now = new Date();
+   166→    let baseDate = now;
+   167→    
+   168→    if (userSub) {
+   169→        userSub = normalizeSubscription(userSub);
+   170→        if (userSub.subscriptionExpires) {
+   171→            const currentExpires = new Date(userSub.subscriptionExpires);
+   172→            if (currentExpires > now) {
+   173→                baseDate = currentExpires;
+   174→            }
+   175→        }
+   176→    } else {
+   177→        userSub = {
+   178→            points: 0,
+   179→            subscriptionDays: 0,
+   180→            subscriptionExpires: null,
+   181→            username: cleaned,
+   182→            reports: [],
+   183→            referredBy: null,
+   184→            referralsCount: 0,
+   185→            referralPoints: 0,
+   186→            updatedAt: now.toISOString()
+   187→        };
+   188→        foundChatId = `pending_${cleaned}`;
+   189→    }
+   190→    
+   191→    const expires = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
+   192→    userSub.subscriptionExpires = expires.toISOString();
+   193→    userSub.subscriptionDays = getDaysRemaining(userSub.subscriptionExpires);
+   194→    userSub.updatedAt = now.toISOString();
+   195→    
+   196→    // Referral rewards!
+   197→    if (userSub.referredBy && !userSub.referralAwarded) {
+   198→        const referrerId = userSub.referredBy.toString();
+   199→        if (data.subscriptions[referrerId]) {
+   200→            // Determine reward points based on subscription days
+   201→            let rewardPoints = 0;
+   202→            if (days === 30) rewardPoints = 50;
+   203→            else if (days === 90) rewardPoints = 150;
+   204→            else if (days === 180) rewardPoints = 300;
+   205→            else if (days >= 365) rewardPoints = 600;
+   206→            
+   207→            if (rewardPoints > 0) {
+   208→                data.subscriptions[referrerId].referralPoints = (data.subscriptions[referrerId].referralPoints || 0) + rewardPoints;
+   209→                data.subscriptions[referrerId].points = (data.subscriptions[referrerId].points || 0) + rewardPoints;
+   210→                data.subscriptions[referrerId].updatedAt = now.toISOString();
+   211→                userSub.referralAwarded = true; // prevent multiple awards from the same user's first activation
+   212→                
+   213→                // Notify referrer
+   214→                try {
+   215→                    await bot.sendMessage(referrerId, `🎁 لقد حصلت على ${rewardPoints} نقطة مجانية كمكافأة لأن المستخدم @${username} الذي قمت بدعوته قام بالاشتراك!`);
+   216→                } catch (e) {
+   217→                    console.warn('Could not notify referrer:', e.message);
+   218→                }
+   219→            }
+   220→        }
+   221→    }
+   222→    
+   223→    data.subscriptions[foundChatId] = userSub;
+   224→    await saveLocalSubscriptions(data);
+   225→    
+   226→    return { chatId: foundChatId, ...userSub };
+   227→};
+   228→
+   229→// Initialize Telegram Bot
+   230→// Consider the app to be in production when a proper WEB_APP_URL is provided
+   231→process.on('unhandledRejection', (reason, promise) => {
+   232→    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+   233→});
+   234→process.on('uncaughtException', (err) => {
+   235→    console.error('Uncaught Exception:', err);
+   236→});
+   237→
+   238→const isProduction = Boolean(WEB_APP_URL) && WEB_APP_URL.startsWith('https://') && !WEB_APP_URL.includes('localhost');
+   239→const bot = new TelegramBot(TOKEN, { 
+   240→    polling: !isProduction,
+   241→    request: {
+   242→        timeout: 30000 // 30 seconds to prevent ConnectTimeoutError crashes
+   243→    }
+   244→});
+   245→
+   246→bot.on('polling_error', (error) => {
+   247→    console.error('Telegram polling error:', error.message);
+   248→});
+   249→
+   250→bot.on('webhook_error', (error) => {
+   251→    console.error('Telegram webhook error:', error.message);
+   252→});
+   253→
+   254→// Helper: Send User Status Message
+   255→const sendMyStatusMessage = async (chatId, username) => {
+   256→    const user = await findSubscription(chatId, username);
+   257→    const daysLeft = user.subscriptionDays || 0;
+   258→    const statusText = daysLeft > 0 ? `فعال (${daysLeft} يوم متبقي)` : 'غير فعال (0 يوم)';
+   259→    const subStatusIcon = daysLeft > 0 ? '✅' : '❌';
+   260→
+   261→    const statusMsg = `📊 حالة حسابك في منصة صحة:
+   262→
+   263→${subStatusIcon} حالة الاشتراك: ${statusText}
+   264→⏳ الأيام المتبقية: ${daysLeft} يوم
+   265→
+   266→🌑 رصيد النقاط: ${user.points || 0} نقطة
+   267→• تكلفة إنشاء التقرير: 5 نقاط
+   268→
+   269→💡 يمكنك استخدام النقاط لإنشاء التقارير دون الحاجة لاشتراك شهري، أو الاشتراك بالباقة اللامحدودة!`;
+   270→
+   271→    await bot.sendMessage(chatId, statusMsg, {
+   272→        reply_markup: {
+   273→            inline_keyboard: [
+   274→                [{ text: '🏥 فتح التطبيق (إنشاء تقرير)', web_app: { url: WEB_APP_URL_CACHED } }],
+   275→                [{ text: '🛒 متجر الباقات', callback_data: 'packages' }, { text: '🔗 برنامج الإحالات', callback_data: 'referrals' }]
+   276→            ]
+   277→        }
+   278→    });
+   279→};
+   280→
+   281→// Start Command Handler
+   282→const handleStartCommand = async (msg) => {
+   283→    const chatId = msg.chat.id.toString();
+   284→    const username = msg.from?.username;
+   285→    const displayName = msg.from?.first_name || (username ? `${username}` : 'مستخدم');
+   286→
+   287→    const text = msg.text || '';
+   288→    const refMatch = text.match(/\/start\s+ref_(\d+)/i);
+   289→    let referrerId = null;
+   290→    if (refMatch) {
+   291→        referrerId = refMatch[1];
+   292→    }
+   293→
+   294→    const user = await findSubscription(chatId, username || displayName, referrerId);
+   295→
+   296→    // Force update Chat Menu Button (Open button) to Render URL on every /start
+   297→    configureChatMenuButton(chatId).catch(err => console.warn('Menu button configure notice:', err.message));
+   298→
+   299→    // Message 1: Quick Access Reply Keyboard Configuration with direct WebApp button
+   300→    await bot.sendMessage(chatId, `⚡ تم تفعيل قائمة الوصول السريع أسفل الشاشة!`, {
+   301→        reply_markup: {
+   302→            keyboard: [
+   303→                [{ text: '🏥 فتح التطبيق (إنشاء تقرير)', web_app: { url: WEB_APP_URL_CACHED } }],
+   304→                [{ text: '🔗 برنامج الإحالات' }, { text: '🛒 متجر الباقات' }],
+   305→                [{ text: '🔗 كسب نقاط (الإحالات)' }],
+   306→                [{ text: '📊 حالة حسابي' }]
+   307→            ],
+   308→            resize_keyboard: true
+   309→        }
+   310→    });
+   311→
+   312→    // Message 2: Dynamic status welcome message with full inline keyboard & direct links
+   313→    const daysLeft = user.subscriptionDays || 0;
+   314→    const statusIcon = daysLeft > 0 ? '✅' : '❌';
+   315→    const statusText = daysLeft > 0 ? `فعال - متبقي ${daysLeft} يوم` : `غير فعال - متبقي 0 يوم`;
+   316→    
+   317→    const welcomeText = `👋 أهلاً بعودتك ${displayName}!
+   318→
+   319→${statusIcon} اشتراكك ${statusText}
+   320→🌑 رصيدك الحالي من النقاط: ${user.points || 0} نقطة
+   321→• تكلفة التقرير الواحد: 5 نقاط.
+   322→
+   323→💡 يمكنك الاشتراك بالباقة الشهرية لإنشاء غير محدود، أو شحن النقاط للشراء بالتقرير!
+   324→
+   325→اضغط على الأزرار أدناه لفتح التطبيق أو التصفح ⚡`;
+   326→
+   327→    await bot.sendMessage(chatId, welcomeText, {
+   328→        reply_markup: {
+   329→            inline_keyboard: [
+   330→                [{ text: '🏥 فتح التطبيق مباشرة (إنشاء تقرير)', web_app: { url: WEB_APP_URL_CACHED } }],
+   331→                [{ text: 'إصدار تقرير 📄', web_app: { url: WEB_APP_URL_CACHED } }],
+   332→                [{ text: 'دعوة صديق 🎁', callback_data: 'referrals' }],
+   333→                [{ text: 'باقات الاشتراك 💎', callback_data: 'packages' }],
+   334→                [{ text: 'حالة حسابي 📊', callback_data: 'mystatus' }]
+   335→            ]
+   336→        }
+   337→    });
+   338→};
+   339→
+   340→bot.onText(/^\/start(\/verify)?(@\w+)?(\s.*)?$/i, handleStartCommand);
+   341→
+   342→// /help command
+   343→bot.onText(/\/help/, async (msg) => {
+   344→    const chatId = msg.chat.id.toString();
+   345→    await bot.sendMessage(chatId, `مرحباً!\nاستخدم /start للبدء.\nإذا كنت مسؤولاً، يمكنك استخدام /addsub @username <days> لتفعيل الاشتراك.`);
+   346→});
+   347→
+   348→// /buy command
+   349→bot.onText(/\/buy/, async (msg) => {
+   350→    const chatId = msg.chat.id.toString();
+   351→    await sendPackagesMessage(chatId);
+   352→});
+   353→
+   354→// /admin command
+   355→bot.onText(/\/admin/, async (msg) => {
+   356→    const chatId = msg.chat.id.toString();
+   357→    const username = msg.from?.username;
+   358→    if (!username || username.toLowerCase() !== ADMIN_USERNAME.toLowerCase()) {
+   359→        await bot.sendMessage(chatId, 'ليس لديك صلاحية المسؤول.');
+   360→        return;
+   361→    }
+   362→    await bot.sendMessage(chatId, `أوامر المسؤول:
+   363→/addsub @username <days> - تفعيل أو تمديد اشتراك للمستخدم
+   364→/mysub - عرض حالة الاشتراك الخاصة بك`);
+   365→});
+   366→
+   367→// Admin commands to add subscriptions
+   368→bot.onText(/\/addsub\s+@?(\w+)\s+(\d+)/i, async (msg, match) => {
+   369→    const chatId = msg.chat.id.toString();
+   370→    const username = msg.from?.username;
+   371→    
+   372→    if (!username || username.toLowerCase() !== ADMIN_USERNAME.toLowerCase()) {
+   373→        await bot.sendMessage(chatId, 'ليس لديك صلاحية المسؤول لتنفيذ هذا الأمر.');
+   374→        return;
+   375→    }
+   376→
+   377→    const targetUsername = match[1];
+   378→    const days = parseInt(match[2], 10);
+   379→    if (!targetUsername || isNaN(days) || days <= 0) {
+   380→        await bot.sendMessage(chatId, 'يرجى استخدام الصيغة الصحيحة: /addsub @username 30');
+   381→        return;
+   382→    }
+   383→
+   384→    const result = await addSubscriptionByUsername(targetUsername, days);
+   385→    await bot.sendMessage(chatId, `✅ تم تفعيل الاشتراك بنجاح للمستخدم @${targetUsername} لمدة ${days} يوم.`);
+   386→    
+   387→    if (result.chatId && !result.chatId.startsWith('pending_')) {
+   388→        try {
+   389→            await bot.sendMessage(result.chatId, `🎉 تم تفعيل اشتراكك لمدة ${days} يوم من قبل المسؤول! يمكنك الآن فتح التطبيق عبر /start.`);
+   390→        } catch (e) {
+   391→            console.warn('Could not send notification to user:', e.message);
+   392→        }
+   393→    }
+   394→});
+   395→
+   396→// /mysub command
+   397→bot.onText(/\/mysub/, async (msg) => {
+   398→    const chatId = msg.chat.id.toString();
+   399→    const username = msg.from?.username || msg.from?.first_name || 'مستخدم';
+   400→    const user = await findSubscription(chatId, username);
+   401→    const status = user.subscriptionDays > 0 ? `اشتراكك نشط، متبقي ${user.subscriptionDays} يوم.` : 'اشتراكك غير نشط أو انتهى. الرجاء التواصل لتفعيل الاشتراك.';
+   402→    await bot.sendMessage(chatId, status);
+   403→});
+   404→
+   405→// Bottom Keyboard & Message Handlers
+   406→bot.on('message', async (msg) => {
+   407→    if (!msg.text) return;
+   408→    if (/^\/start/i.test(msg.text)) return; // Already handled
+   409→    if (/^\/mysub/i.test(msg.text)) return; // Already handled
+   410→    if (/^\/admin/i.test(msg.text)) return; // Already handled
+   411→    if (/^\/addsub/i.test(msg.text)) return; // Already handled
+   412→    if (/^\/help/i.test(msg.text)) return; // Already handled
+   413→    if (/^\/buy/i.test(msg.text)) return; // Already handled
+   414→    
+   415→    const chatId = msg.chat.id.toString();
+   416→    const username = msg.from?.username || msg.from?.first_name || 'مستخدم';
+   417→    
+   418→    if (msg.text === '📊 حالة حسابي') {
+   419→        const user = await findSubscription(chatId, username);
+   420→        const daysLeft = user.subscriptionDays || 0;
+   421→        const statusText = daysLeft > 0 ? 'فعال' : 'غير فعال';
+   422→        const subStatusIcon = daysLeft > 0 ? '✅' : '❌';
+   423→
+   424→        const statusMsg = `👤 حالة حسابك:
+   425→
+   426→${subStatusIcon} الاشتراك الشهري: ${statusText}
+   427→📅 متبقي: ${daysLeft} يوم
+   428→
+   429→🌑 رصيد النقاط: ${user.points || 0} نقطة
+   430→• تكلفة التقرير الواحد: 5 نقاط.
+   431→
+   432→💡 يمكنك استخدام النقاط لإنشاء التقارير بدون اشتراك شهري، أو تفعيل اشتراك غير محدود عبر الأمر /buy`;
+   433→
+   434→        await bot.sendMessage(chatId, statusMsg);
+   435→        return;
+   436→    }
+   437→    
+   438→    if (msg.text === '🔗 كسب نقاط (الإحالات)') {
+   439→        await sendReferralMessage(chatId, username);
+   440→        return;
+   441→    }
+   442→    
+   443→    if (msg.text === '🛒 متجر الباقات') {
+   444→        await sendPackagesMessage(chatId);
+   445→        return;
+   446→    }
+   447→    
+   448→    console.log(`Telegram bot message received: "${msg.text}" from ${msg.from?.username || msg.from?.first_name}`);
+   449→});
+   450→
+   451→bot.on('photo', async (msg) => {
+   452→    const chatId = msg.chat.id.toString();
+   453→    const photo = msg.photo[msg.photo.length - 1]; // get highest resolution
+   454→    const fileId = photo.file_id;
+   455→    
+   456→    const inlineKeyboard = {
+   457→        inline_keyboard: [
+   458→            [{ text: "تعيين كشعار وزارة الصحة (MoH)", callback_data: `setlogo_moh_${fileId}` }],
+   459→            [{ text: "تعيين كشعار المستشفى", callback_data: `setlogo_hosp_${fileId}` }],
+   460→            [{ text: "إلغاء", callback_data: "cancel_logo" }]
+   461→        ]
+   462→    };
+   463→    
+   464→    await bot.sendMessage(chatId, "ماذا تريد أن تفعل بهذه الصورة؟", { reply_markup: inlineKeyboard });
+   465→});
+   466→
+   467→bot.on('callback_query', async (query) => {
+   468→    const chatId = query.message.chat.id.toString();
+   469→    const data = query.data;
+   470→    
+   471→    if (data === "cancel_logo") {
+   472→        await bot.deleteMessage(chatId, query.message.message_id);
+   473→        return;
+   474→    }
+   475→    
+   476→    if (data.startsWith('setlogo_')) {
+   477→        const parts = data.split('_');
+   478→        const type = parts[1]; // moh or hosp
+   479→        const fileId = parts.slice(2).join('_');
+   480→        
+   481→        try {
+   482→            const fileLink = await bot.getFileLink(fileId);
+   483→            
+   484→            const subs = await loadLocalSubscriptions();
+   485→            if (!subs.subscriptions[chatId]) {
+   486→                subs.subscriptions[chatId] = { points: 0, subscriptionDays: 0, reports: [] };
+   487→            }
+   488→            
+   489→            if (type === 'moh') {
+   490→                subs.subscriptions[chatId].mohLogo = fileLink;
+   491→                await bot.answerCallbackQuery(query.id, { text: "تم تعيين شعار وزارة الصحة بنجاح ✅" });
+   492→            } else if (type === 'hosp') {
+   493→                subs.subscriptions[chatId].hospitalLogo = fileLink;
+   494→                await bot.answerCallbackQuery(query.id, { text: "تم تعيين شعار المستشفى بنجاح ✅" });
+   495→            }
+   496→            
+   497→            await saveLocalSubscriptions(subs);
+   498→            await bot.deleteMessage(chatId, query.message.message_id);
+   499→            await bot.sendMessage(chatId, "تم حفظ الشعار في حسابك بنجاح! سيتم استخدامه في التقارير القادمة. ✅\nيرجى إعادة فتح التطبيق لتحديث الشعارات.");
+   500→        } catch (e) {
+   501→            console.error(e);
+   502→            await bot.answerCallbackQuery(query.id, { text: "حدث خطأ أثناء حفظ الشعار ❌" });
+   503→        }
+   504→    }
+   505→});
+   506→
+   507→// Helper: Send Referral Statistics & Link
+   508→const sendReferralMessage = async (chatId, username) => {
+   509→    const user = await findSubscription(chatId, username);
+   510→    const botInfo = await bot.getMe();
+   511→    const botUsername = botInfo.username || 'zakmmm_1211_bot';
+   512→    const referralLink = `https://t.me/${botUsername}?start=ref_${chatId}`;
+   513→
+   514→    // Calculate actual referrals
+   515→    const data = await loadLocalSubscriptions();
+   516→    let referralsCount = 0;
+   517→    for (const sub of Object.values(data.subscriptions)) {
+   518→        if (sub.referredBy === chatId) {
+   519→            referralsCount++;
+   520→        }
+   521→    }
+   522→
+   523→    const referralMsg = `🔗 نظام الإحالات والمكافآت (Referral System)
+   524→
+   525→شارك رابط إحالتك الفريد مع أصدقائك، واربح نقاطاً إضافية لإنشاء التقارير في كل مرة يقومون فيها بالاشتراك!
+   526→
+   527→🔗 رابط إحالتك الخاص بك:
+   528→${referralLink}
+   529→
+   530→📊 إحصائيات إحالتك:
+   531→• عدد الأشخاص المسجلين من خلالك: ${referralsCount} شخص
+   532→• رصيدك الحالي من نقاط الإحالة: ${user.referralPoints || 0} نقطة
+   533→
+   534→🎁 كيف تربح النقاط؟
+   535→عندما يقوم شخص قمت بإحالته بأي عملية شراء، ستحصل أنت على المكافآت التالية تلقائياً في كل مرة يشتري فيها:
+   536→• خطة Month 1 (100.0 ريال) -> تربح 50 نقطة (10 تقارير مجاناً)
+   537→• خطة Months 3 (300.0 ريال) -> تربح 150 نقطة (30 تقرير مجاناً)
+   538→• خطة Months 6 (500.0 ريال) -> تربح 300 نقطة (60 تقرير مجاناً)
+   539→• خطة Year 1 (800.0 ريال) -> تربح 600 نقطة (120 تقرير مجاناً)
+   540→• خطة حزمة النقاط الأساسية (30 نقطة) (20.0 ريال) -> تربح 10 نقاط (2 تقرير مجاناً)
+   541→• خطة حزمة النقاط الموصى بها (100 نقطة) (50.0 ريال) -> تربح 25 نقطة (5 تقارير مجاناً)
+   542→• خطة حزمة النقاط المتقدمة (200 نقطة) (80.0 ريال) -> تربح 50 نقطة (10 تقارير مجاناً)
+   543→
+   544→💡 ملاحظة: لا توجد صلاحية لانتهاء النقاط، ويمكنك استخدامها في أي وقت!`;
+   545→
+   546→    await bot.sendMessage(chatId, referralMsg);
+   547→};
+   548→
+   549→// Helper: Send Packages Store Menu
+   550→const sendPackagesMessage = async (chatId) => {
+   551→    const packagesMsg = `🛒 متجر الباقات والاشتراكات لإنشاء التقارير
+   552→
+   553→شحن وتفعيل الباقات يتم يدوياً عبر الدعم الفني بشكل سهل وآمن وسريع.
+   554→
+   555→⭐ حزم النقاط (بدون صلاحية انتهاء):
+   556→• حزمة النقاط الأساسية (30 نقطة): 30 نقطة -> السعر: 20.0 ريال سعودي
+   557→• حزمة النقاط الموصى بها (100 نقطة): 100 نقطة -> السعر: 50.0 ريال سعودي
+   558→• حزمة النقاط المتقدمة (200 نقطة): 200 نقطة -> السعر: 80.0 ريال سعودي
+   559→
+   560→📅 الاشتراكات اللامحدودة (غير محدودة التقارير):
+   561→• خطة 30 يوم -> السعر: 100.0 ريال سعودي
+   562→• خطة 90 يوم -> السعر: 300.0 ريال سعودي
+   563→• خطة 180 يوم -> السعر: 500.0 ريال سعودي
+   564→• خطة 365 يوم -> السعر: 800.0 ريال سعودي
+   565→
+   566→👇 اضغط على الباقة التي تريدها للتواصل وتفعيلها فوراً:`;
+   567→
+   568→    const ownerLink = `https://t.me/${ADMIN_USERNAME}`;
+   569→    const inlineKeyboard = [
+   570→        [{ text: '📅 خطة 30 يوم (100.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: خطة 30 يوم (100 ريال) لحسابي.')}` }],
+   571→        [{ text: '📅 خطة 90 يوم (300.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: خطة 90 يوم (300 ريال) لحسابي.')}` }],
+   572→        [{ text: '📅 خطة 180 يوم (500.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: خطة 180 يوم (500 ريال) لحسابي.')}` }],
+   573→        [{ text: '📅 خطة 365 يوم (800.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: خطة 365 يوم (800 ريال) لحسابي.')}` }],
+   574→        [{ text: '⭐ حزمة النقاط الأساسية (30 نقطة) (20.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: حزمة النقاط الأساسية 30 نقطة (20 ريال) لحسابي.')}` }],
+   575→        [{ text: '⭐ حزمة النقاط الموصى بها (100 نقطة) (50.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: حزمة النقاط الموصى بها 100 نقطة (50 ريال) لحسابي.')}` }],
+   576→        [{ text: '⭐ حزمة النقاط المتقدمة (200 نقطة) (80.0 ريال) ↗️', url: `${ownerLink}?text=${encodeURIComponent('مرحباً، أود تفعيل باقة: حزمة النقاط المتقدمة 200 نقطة (80 ريال) لحسابي.')}` }]
+   577→    ];
+   578→
+   579→    await bot.sendMessage(chatId, packagesMsg, {
+   580→        reply_markup: {
+   581→            inline_keyboard: inlineKeyboard
+   582→        }
+   583→    });
+   584→};
+   585→
+   586→// Callback Query Handler for Inline Buttons
+   587→bot.on('callback_query', async (query) => {
+   588→    const chatId = query.message.chat.id.toString();
+   589→    const username = query.from?.username || query.from?.first_name || 'مستخدم';
+   590→    
+   591→    if (query.data === 'referrals') {
+   592→        await sendReferralMessage(chatId, username);
+   593→        await bot.answerCallbackQuery(query.id);
+   594→    } else if (query.data === 'packages') {
+   595→        await sendPackagesMessage(chatId);
+   596→        await bot.answerCallbackQuery(query.id);
+   597→    } else if (query.data === 'mystatus') {
+   598→        await sendMyStatusMessage(chatId, username);
+   599→        await bot.answerCallbackQuery(query.id);
+   600→    }
+   601→});
+   602→
+   603→// API Endpoints
+   604→
+   605→// 1. Get User State
+   606→app.get('/api/user/:chatId', async (req, res) => {
+   607→    try {
+   608→        const { chatId } = req.params;
+   609→        const username = req.query.username;
+   610→        const user = await findSubscription(chatId, username);
+   611→        res.json({ success: true, user, reports: user.reports || [] });
+   612→    } catch (err) {
+   613→        res.status(500).json({ success: false, error: err.message });
+   614→    }
+   615→});
+   616→
+   617→// 1.5 Generate PDF / Save Report Draft
+   618→app.post('/api/generate', async (req, res) => {
+   619→    try {
+   620→        const { chatId, report } = req.body;
+   621→        if (!chatId || !report) {
+   622→            return res.status(400).json({ success: false, error: 'chatId and report are required' });
+   623→        }
+   624→
+   625→        const data = await loadLocalSubscriptions();
+   626→        const chatIdStr = chatId.toString();
+   627→        const userSub = data.subscriptions[chatIdStr];
+   628→
+   629→        if (!userSub) {
+   630→            return res.status(404).json({ success: false, error: 'User not found' });
+   631→        }
+   632→
+   633→        const normalized = normalizeSubscription(userSub);
+   634→        if (normalized.subscriptionDays <= 0) {
+   635→            return res.status(403).json({ success: false, error: 'Subscription required' });
+   636→        }
+   637→
+   638→        if (!userSub.reports) {
+   639→            userSub.reports = [];
+   640→        }
+   641→
+   642→        const index = userSub.reports.findIndex(r => r.id === report.id);
+   643→        if (index >= 0) {
+   644→            userSub.reports[index] = report;
+   645→        } else {
+   646→            userSub.reports.push(report);
+   647→        }
+   648→
+   649→        userSub.updatedAt = new Date().toISOString();
+   650→        await saveLocalSubscriptions(data);
+   651→        res.json({ success: true, report, generatedAt: new Date().toISOString() });
+   652→    } catch (err) {
+   653→        res.status(500).json({ success: false, error: err.message });
+   654→    }
+   655→});
+   656→
+   657→// 2. Buy Package (Update User Subscription)
+   658→app.post('/api/user/:chatId/package', async (req, res) => {
+   659→    try {
+   660→        const { chatId } = req.params;
+   661→        const { points, subscriptionDays } = req.body;
+   662→        
+   663→        const data = await loadLocalSubscriptions();
+   664→        const chatIdStr = chatId.toString();
+   665→        
+   666→        if (!data.subscriptions[chatIdStr]) {
+   667→            data.subscriptions[chatIdStr] = {
+   668→                points: 0,
+   669→                subscriptionDays: 0,
+   670→                subscriptionExpires: null,
+   671→                username: null,
+   672→                reports: [],
+   673→                updatedAt: new Date().toISOString()
+   674→            };
+   675→        }
+   676→        
+   677→        const userSub = data.subscriptions[chatIdStr];
+   678→        const normalized = normalizeSubscription(userSub);
+   679→        
+   680→        if (subscriptionDays > 0) {
+   681→            const now = new Date();
+   682→            const baseDate = normalized.subscriptionExpires ? new Date(normalized.subscriptionExpires) : now;
+   683→            const start = baseDate > now ? baseDate : now;
+   684→            const expires = new Date(start.getTime() + subscriptionDays * 24 * 60 * 60 * 1000);
+   685→            normalized.subscriptionExpires = expires.toISOString();
+   686→            normalized.subscriptionDays = getDaysRemaining(normalized.subscriptionExpires);
+   687→        }
+   688→        
+   689→        normalized.points = (normalized.points || 0) + (points || 0);
+   690→        normalized.updatedAt = new Date().toISOString();
+   691→        
+   692→        await saveLocalSubscriptions(data);
+   693→        res.json({ success: true, points: normalized.points, subscriptionDays: normalized.subscriptionDays });
+   694→    } catch (err) {
+   695→        res.status(500).json({ success: false, error: err.message });
+   696→    }
+   697→});
+   698→
+   699→// 3. Save Report
+   700→app.post('/api/report/:chatId', async (req, res) => {
+   701→    try {
+   702→        const { chatId } = req.params;
+   703→        const reportData = req.body.report;
+   704→        
+   705→        const data = await loadLocalSubscriptions();
+   706→        const chatIdStr = chatId.toString();
+   707→        
+   708→        if (!data.subscriptions[chatIdStr]) {
+   709→            return res.status(404).json({ success: false, error: 'User not found' });
+   710→        }
+   711→        
+   712→        const userSub = data.subscriptions[chatIdStr];
+   713→        const normalized = normalizeSubscription(userSub);
+   714→        
+   715→        if (normalized.subscriptionDays <= 0) {
+   716→            return res.status(403).json({ success: false, error: 'Subscription required' });
+   717→        }
+   718→        
+   719→        if (!userSub.reports) {
+   720→            userSub.reports = [];
+   721→        }
+   722→        
+   723→        const index = userSub.reports.findIndex(r => r.id === reportData.id);
+   724→        if (index >= 0) {
+   725→            userSub.reports[index] = reportData;
+   726→        } else {
+   727→            userSub.reports.push(reportData);
+   728→        }
+   729→        
+   730→        userSub.updatedAt = new Date().toISOString();
+   731→        await saveLocalSubscriptions(data);
+   732→        res.json({ success: true });
+   733→    } catch (err) {
+   734→        res.status(500).json({ success: false, error: err.message });
+   735→    }
+   736→});
+   737→
+   738→// 4. Delete Report
+   739→app.delete('/api/report/:chatId/:id', async (req, res) => {
+   740→    try {
+   741→        const { chatId, id } = req.params;
+   742→        const data = await loadLocalSubscriptions();
+   743→        const chatIdStr = chatId.toString();
+   744→        
+   745→        if (data.subscriptions[chatIdStr] && data.subscriptions[chatIdStr].reports) {
+   746→            data.subscriptions[chatIdStr].reports = data.subscriptions[chatIdStr].reports.filter(r => r.id !== id);
+   747→            data.subscriptions[chatIdStr].updatedAt = new Date().toISOString();
+   748→            await saveLocalSubscriptions(data);
+   749→            res.json({ success: true });
+   750→        } else {
+   751→            res.status(404).json({ success: false, error: 'Report not found' });
+   752→        }
+   753→    } catch (err) {
+   754→        res.status(500).json({ success: false, error: err.message });
+   755→    }
+   756→});
+   757→
+   758→const appLogs = [];
+   759→function addLog(msg) {
+   760→    appLogs.push(`[${new Date().toISOString()}] ${msg}`);
+   761→    if (appLogs.length > 50) appLogs.shift();
+   762→    console.log(msg);
+   763→}
+   764→
+   765→// 5. Send PDF via Telegram
+   766→app.post('/api/send-pdf', async (req, res) => {
+   767→    try {
+   768→        const { chatId, pdfBase64, filename, reportId } = req.body;
+   769→        addLog(`send-pdf called for chatId: ${chatId}`);
+   770→        
+   771→        if (!chatId || !pdfBase64) {
+   772→            addLog('Missing chatId or pdfBase64');
+   773→            return res.status(400).json({ success: false, error: 'Missing chatId or pdf content' });
+   774→        }
+   775→
+   776→        const pdfBuffer = Buffer.from(pdfBase64.split('base64,')[1], 'base64');
+   777→        addLog(`Buffer created, size: ${pdfBuffer.length} bytes`);
+   778→        
+   779→        // Send document via Telegram Bot
+   780→        const message = await bot.sendDocument(chatId, pdfBuffer, {
+   781→            caption: 'تقرير الإجازة المرضية الخاص بك 📄'
+   782→        }, {
+   783→            filename: filename || 'sickLeaves.pdf',
+   784→            contentType: 'application/pdf'
+   785→        });
+   786→        
+   787→        addLog(`Telegram sent doc successfully. fileId: ${message.document?.file_id}`);
+   788→
+   789→        const fileId = message.document?.file_id;
+   790→        
+   791→        if (fileId && reportId) {
+   792→            const data = await loadLocalSubscriptions();
+   793→            const userSub = data.subscriptions[chatId.toString()];
+   794→            if (userSub && userSub.reports) {
+   795→                const report = userSub.reports.find(r => r.id === reportId);
+   796→                if (report) {
+   797→                    report.fileId = fileId;
+   798→                    userSub.updatedAt = new Date().toISOString();
+   799→                    await saveLocalSubscriptions(data);
+   800→                }
+   801→            }
+   802→            
+   803→            // Forward to channel for backup if channel ID is defined
+   804→            if (CHANNEL_ID) {
+   805→                try {
+   806→                    await bot.sendDocument(CHANNEL_ID, fileId);
+   807→                } catch (err) {
+   808→                    addLog('Could not forward to Telegram Channel: ' + err.message);
+   809→                }
+   810→            }
+   811→        }
+   812→
+   813→        res.json({ success: true, fileId });
+   814→    } catch (err) {
+   815→        addLog(`Error sending PDF: ${err.message}`);
+   816→        res.status(500).json({ success: false, error: err.message });
+   817→    }
+   818→});
+   819→
+   820→// 6. Generate Native PDF via Puppeteer
+   821→app.post('/api/generate-native-pdf', async (req, res) => {
+   822→    let browser = null;
+   823→    try {
+   824→        const { chatId, reportData, filename, reportId } = req.body;
+   825→        addLog(`generate-native-pdf called for chatId: ${chatId}`);
+   826→        
+   827→        if (!chatId || !reportData) {
+   828→            return res.status(400).json({ success: false, error: 'Missing chatId or reportData' });
+   829→        }
+   830→
+   831→        // Helper: read local image as base64 data URI
+   832→        const imgToBase64 = async (filePath) => {
+   833→            try {
+   834→                const abs = path.join(__dirname, filePath);
+   835→                const buf = await fs.readFile(abs);
+   836→                const ext = path.extname(filePath).toLowerCase().replace('.', '');
+   837→                const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : 'image/png';
+   838→                return `data:${mime};base64,${buf.toString('base64')}`;
+   839→            } catch {
+   840→                return '';
+   841→            }
+   842→        };
+   843→
+   844→        // Pre-load images as base64
+   845→        const sehaLogo = await imgToBase64('الشعارات/Seha.png');
+   846→        const ksaCalligraphy = await imgToBase64('الشعارات/ksa_calligraphy.png');
+   847→        const mohLogo = await imgToBase64('الشعارات/Saudi_Ministry_of_Health.JPG');
+   848→        const nhicLogo = await imgToBase64('الشعارات/dfhZfyJM_400x400 (1).jpg');
+   849→
+   850→        const d = reportData;
+   851→
+   852→        // Build self-contained HTML matching Sehaty platform exactly
+   853→        const html = `<!DOCTYPE html>
+   854→<html lang="ar" dir="ltr">
+   855→<head>
+   856→<meta charset="UTF-8">
+   857→</head>
+   858→<body>
+   859→<style>
+   860→  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+   861→  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+   862→  html { background: #fff !important; }
+   863→  body { margin: 0; padding: 0; background: #fff !important; width: 794px; height: 1123px; overflow: hidden; direction: ltr; }
+   864→  @page { size: 794px 1123px; margin: 0; }
+   865→  table { border-spacing: 0; direction: ltr; }
+   866→  td { font-family: 'Tajawal', 'Arial', sans-serif; }
+   867→  .label-en { border: 1px solid #dee2e6; padding: 10px 8px; font-weight: bold; color: #216ba5; font-size: 12px; width: 155px; text-decoration: underline; font-style: italic; text-align: left; }
+   868→  .label-ar { border: 1px solid #dee2e6; padding: 10px 8px; font-weight: bold; color: #216ba5; font-size: 13px; width: 155px; text-align: right; }
+   869→  .val { border: 1px solid #dee2e6; padding: 10px 8px; color: #333; font-size: 12px; }
+   870→  .dur-row td { background-color: #2b4b7c; color: white; border: 1px solid #4a6a9a; padding: 10px 8px; font-size: 12px; }
+   871→  .dur-label { font-weight: bold; }
+   872→</style>
+   873→<div style="width:794px;height:1123px;background:#fff;font-family:'Tajawal','Arial',sans-serif;position:relative;overflow:hidden;direction:ltr;">
+   874→  
+   875→  <!-- Header: Seha Logo (left) -->
+   876→  <img src="${sehaLogo}" style="position:absolute;top:30px;left:40px;width:120px;">
+   877→  
+   878→  <!-- Header: KSA Calligraphy (center) -->
+   879→  <img src="${ksaCalligraphy}" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);width:140px;height:55px;object-fit:contain;">
+   880→  
+   881→  <!-- Header: Kingdom text -->
+   882→  <div style="position:absolute;top:78px;left:0;width:794px;text-align:center;">
+   883→    <p style="font-family:'Times New Roman',serif;font-size:14px;color:#000;font-weight:bold;">Kingdom of Saudi Arabia</p>
+   884→  </div>
+   885→  
+   886→  <!-- Header: Arabic Title -->
+   887→  <div style="position:absolute;top:108px;left:0;width:794px;text-align:center;">
+   888→    <h1 style="color:#216ba5;font-size:22px;font-weight:bold;font-family:'Tajawal',sans-serif;margin:0;">${d.titleAr || 'تقرير إجازة مرضية'}</h1>
+   889→  </div>
+   890→  
+   891→  <!-- Header: English Title -->
+   892→  <div style="position:absolute;top:138px;left:0;width:794px;text-align:center;">
+   893→    <h2 style="color:#216ba5;font-size:14px;font-weight:bold;margin:0;">${d.titleEn || 'Sick Leave Report'}</h2>
+   894→  </div>
+   895→  
+   896→  <!-- Header: Geometric graphic (right) -->
+   897→  <svg width="120" height="65" viewBox="0 0 150 80" style="position:absolute;top:35px;left:634px;opacity:0.6;">
+   898→    <path d="M 0,10 L 40,40 L 90,10 L 130,30 L 150,0 M 40,40 L 60,70 L 90,10 M 60,70 L 130,30 M 90,10 L 110,80 L 130,30 M 110,80 L 150,60" stroke="#b0c4de" stroke-width="1.2" fill="none"/>
+   899→  </svg>
+   900→
+   901→  <!-- Horizontal separator line -->
+   902→  <div style="position:absolute;top:170px;left:40px;width:714px;height:1px;background:#dee2e6;"></div>
+   903→
+   904→  <!-- Data Table -->
+   905→  <table style="position:absolute;top:185px;left:40px;width:714px;border-collapse:collapse;font-size:12px;text-align:center;table-layout:fixed;">
+   906→    <tr>
+   907→      <td class="label-en" style="width:155px;">Leave ID</td>
+   908→      <td class="val" colspan="2" style="width:404px;">${d.leaveId || ''}</td>
+   909→      <td class="label-ar" style="width:155px;">رمز الإجازة</td>
+   910→    </tr>
+   911→    <tr class="dur-row">
+   912→      <td class="dur-label" style="width:155px;">Leave Duration</td>
+   913→      <td style="width:202px;">${d.durationEn || ''}</td>
+   914→      <td dir="rtl" style="width:202px;">${d.durationAr || ''}</td>
+   915→      <td class="dur-label" style="width:155px;">مدة الإجازة</td>
+   916→    </tr>
+   917→    <tr>
+   918→      <td class="label-en">Admission Date</td>
+   919→      <td class="val">${d.admissionG || ''}</td>
+   920→      <td class="val">${d.admissionH || ''}</td>
+   921→      <td class="label-ar">تاريخ الدخول</td>
+   922→    </tr>
+   923→    <tr>
+   924→      <td class="label-en">Discharge Date</td>
+   925→      <td class="val">${d.dischargeG || ''}</td>
+   926→      <td class="val">${d.dischargeH || ''}</td>
+   927→      <td class="label-ar">تاريخ الخروج</td>
+   928→    </tr>
+   929→    <tr>
+   930→      <td class="label-en">Issue Date</td>
+   931→      <td class="val" colspan="2">${d.issueDate || ''}</td>
+   932→      <td class="label-ar">تاريخ إصدار التقرير</td>
+   933→    </tr>
+   934→    <tr>
+   935→      <td class="label-en">${d.nameLabelEn || 'Name'}</td>
+   936→      <td class="val">${d.nameEn || ''}</td>
+   937→      <td class="val">${d.nameAr || ''}</td>
+   938→      <td class="label-ar">${d.nameLabelAr || 'الاسم'}</td>
+   939→    </tr>
+   940→    <tr>
+   941→      <td class="label-en">National ID / Iqama</td>
+   942→      <td class="val" colspan="2">${d.nationalId || ''}</td>
+   943→      <td class="label-ar">رقم الهوية/الاقامه</td>
+   944→    </tr>
+   945→    <tr>
+   946→      <td class="label-en">Nationality</td>
+   947→      <td class="val">${d.nationalityEn || 'Saudi Arabia'}</td>
+   948→      <td class="val">${d.nationalityAr || 'السعودية'}</td>
+   949→      <td class="label-ar">الجنسية</td>
+   950→    </tr>
+   951→    ${d.relationEn ? `<tr>
+   952→      <td class="label-en">Relation</td>
+   953→      <td class="val">${d.relationEn}</td>
+   954→      <td class="val">${d.relationAr || ''}</td>
+   955→      <td class="label-ar">صلة القرابة</td>
+   956→    </tr>` : ''}
+   957→    <tr>
+   958→      <td class="label-en">Employer</td>
+   959→      <td class="val">${d.employerEn || ''}</td>
+   960→      <td class="val">${d.employerAr || ''}</td>
+   961→      <td class="label-ar">جهة العمل</td>
+   962→    </tr>
+   963→    <tr>
+   964→      <td class="label-en">${d.docLabelEn || 'Practitioner Name'}</td>
+   965→      <td class="val">${d.doctorEn || ''}</td>
+   966→      <td class="val">${d.doctorAr || ''}</td>
+   967→      <td class="label-ar">${d.docLabelAr || 'اسم الممارس'}</td>
+   968→    </tr>
+   969→    <tr>
+   970→      <td class="label-en">Position</td>
+   971→      <td class="val">${d.positionEn || ''}</td>
+   972→      <td class="val">${d.positionAr || ''}</td>
+   973→      <td class="label-ar">المسمى الوظيفى</td>
+   974→    </tr>
+   975→  </table>
+   976→
+   977→  <!-- ===== FOOTER ===== -->
+   978→  
+   979→  <!-- Left Footer: QR Code + Verification Text + Date/Time -->
+   980→  <div style="position:absolute;bottom:45px;left:40px;width:300px;">
+   981→    <div style="text-align:left;margin-bottom:8px;">
+   982→      <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(d.leaveId || 'SEHA')}" style="width:100px;height:100px;">
+   983→    </div>
+   984→    <p style="font-size:10px;font-weight:bold;font-family:'Tajawal',sans-serif;text-align:center;margin:0 0 2px 0;">للتحقق من بيانات التقرير يرجى التأكد من زيارة موقع منصة صحة<br>الرسمي</p>
+   985→    <p style="font-size:9px;color:#555;text-align:center;margin:0 0 2px 0;font-style:italic;">To check the report please visit Seha's offical website</p>
+   986→    <p style="font-size:9px;color:#1a73e8;text-align:center;margin:0 0 15px 0;text-decoration:underline;">www.seha.sa/#/inquiries/slenquiry</p>
+   987→    <div style="text-align:left;font-weight:bold;font-size:11px;color:#000;">
+   988→      <p style="margin:0 0 3px 0;">${d.time || ''}</p>
+   989→      <p style="margin:0;">${d.dayDate || ''}</p>
+   990→    </div>
+   991→  </div>
+   992→
+   993→  <!-- Center Vertical Divider -->
+   994→  <div style="position:absolute;bottom:45px;left:397px;width:1px;height:200px;background-color:#d0d0d0;"></div>
+   995→
+   996→  <!-- Right Footer: MOH Logo + Hospital Name + NHIC Logo -->
+   997→  <div style="position:absolute;bottom:45px;left:454px;width:300px;text-align:center;">
+   998→    <!-- MOH Logo -->
+   999→    <div style="margin-bottom:8px;">
+  1000→      <img src="${mohLogo}" style="height:80px;">
+  1001→    </div>
+  1002→    <!-- Hospital Name -->
+  1003→    <h3 style="font-size:14px;font-weight:bold;font-family:'Tajawal',sans-serif;margin:0 0 3px 0;color:#333;">${d.hospitalAr || ''}</h3>
+  1004→    <h4 style="font-size:12px;font-weight:bold;font-family:'Arial',sans-serif;margin:0 0 3px 0;color:#333;">${d.hospitalEn || ''}</h4>
+  1005→    ${d.licenseNumber ? `<p style="font-size:10px;color:#555;margin:0 0 10px 0;">رقم الترخيص : ${d.licenseNumber}</p>` : '<div style="height:10px;"></div>'}
+  1006→    <!-- NHIC Logo -->
+  1007→    <div>
+  1008→      <img src="${nhicLogo}" style="height:55px;">
+  1009→    </div>
+  1010→  </div>
+  1011→
+  1012→</div>
+  1013→</body>
+  1014→</html>`;
+  1015→
+  1016→        // We no longer generate PDF on the server due to Render environment limitations.
+  1017→        // Instead, we return the HTML and the client uses html2pdf.js to generate the PDF natively.
+  1018→        res.json({ success: true, html: html, reportId: reportId });
+  1019→    } catch (err) {
+  1020→        addLog(`Error generating HTML for PDF: ${err.message}`);
+  1021→        res.status(500).json({ success: false, error: err.message });
+  1022→    }
+  1023→});
+  1024→
+  1025→// 6.5 Send Client-Generated PDF
+  1026→app.post('/api/send-generated-pdf', async (req, res) => {
+  1027→    try {
+  1028→        const { chatId, pdfBase64, filename, reportId } = req.body;
+  1029→        if (!chatId || !pdfBase64) return res.status(400).json({ error: 'Missing data' });
+  1030→        
+  1031→        const base64Data = pdfBase64.includes(',') ? pdfBase64.split(',').pop() : pdfBase64;
+  1032→        const pdfBuffer = Buffer.from(base64Data, 'base64');
+  1033→        
+  1034→        const message = await bot.sendDocument(chatId, pdfBuffer, {
+  1035→            caption: 'تم إصدار التقرير بنجاح ✅'
+  1036→        }, {
+  1037→            filename: filename || 'sickLeaves.pdf',
+  1038→            contentType: 'application/pdf'
+  1039→        });
+  1040→        
+  1041→        addLog(`Telegram sent generated doc successfully. fileId: ${message.document?.file_id}`);
+  1042→        const fileId = message.document?.file_id;
+  1043→        
+  1044→        if (fileId && reportId) {
+  1045→            const data = await loadLocalSubscriptions();
+  1046→            const userSub = data.subscriptions[chatId.toString()];
+  1047→            if (userSub && userSub.reports) {
+  1048→                const report = userSub.reports.find(r => r.id === reportId);
+  1049→                if (report) {
+  1050→                    report.fileId = fileId;
+  1051→                    userSub.updatedAt = new Date().toISOString();
+  1052→                    await saveLocalSubscriptions(data);
+  1053→                }
+  1054→            }
+  1055→            
+  1056→            if (typeof CHANNEL_ID !== 'undefined' && CHANNEL_ID) {
+  1057→                try {
+  1058→                    await bot.sendDocument(CHANNEL_ID, fileId);
+  1059→                } catch (err) {
+  1060→                    addLog('Could not forward to Telegram Channel: ' + err.message);
+  1061→                }
+  1062→            }
+  1063→        }
+  1064→        
+  1065→        res.json({ success: true, fileId });
+  1066→    } catch (err) {
+  1067→        console.error('Error sending generated PDF:', err);
+  1068→        res.status(500).json({ success: false, error: err.message });
+  1069→    }
+  1070→});
+  1071→
+  1072→app.get('/api/logs', (req, res) => {
+  1073→    if (req.query.msg) {
+  1074→        addLog(`CLIENT LOG: ${req.query.msg}`);
+  1075→    }
+  1076→    res.json(appLogs);
+  1077→});
+  1078→
+  1079→
+  1080→// 6. Send Existing PDF via file_id
+  1081→app.post('/api/send-existing-pdf', async (req, res) => {
+  1082→    try {
+  1083→        const { chatId, reportId } = req.body;
+  1084→        const data = await loadLocalSubscriptions();
+  1085→        const userSub = data.subscriptions[chatId.toString()];
+  1086→        if (!userSub || !userSub.reports) {
+  1087→            return res.status(404).json({ success: false, error: 'User or reports not found' });
+  1088→        }
+  1089→        
+  1090→        const report = userSub.reports.find(r => r.id === reportId);
+  1091→        if (!report) {
+  1092→            return res.status(404).json({ success: false, error: 'Report not found' });
+  1093→        }
+  1094→        
+  1095→        if (!report.fileId) {
+  1096→            return res.status(400).json({ success: false, error: 'No PDF generated for this report yet.' });
+  1097→        }
+  1098→        
+  1099→        await bot.sendDocument(chatId, report.fileId);
+  1100→        res.json({ success: true });
+  1101→    } catch (err) {
+  1102→        console.error('Error sending existing PDF:', err);
+  1103→        res.status(500).json({ success: false, error: err.message });
+  1104→    }
+  1105→});
+  1106→
+  1107→// 7. Public Verify Endpoint
+  1108→app.get('/api/verify', async (req, res) => {
+  1109→    try {
+  1110→        const { id, nid } = req.query;
+  1111→        const data = await loadLocalSubscriptions();
+  1112→        
+  1113→        let foundReport = null;
+  1114→        for (const user of Object.values(data.subscriptions)) {
+  1115→            if (user.reports) {
+  1116→                const report = user.reports.find(r => r.id === id && r.nationalId === nid);
+  1117→                if (report) {
+  1118→                    foundReport = report;
+  1119→                    break;
+  1120→                }
+  1121→            }
+  1122→        }
+  1123→        
+  1124→        if (foundReport) {
+  1125→            res.json({ success: true, report: foundReport });
+  1126→        } else {
+  1127→            res.json({ success: false, error: 'Not found' });
+  1128→        }
+  1129→    } catch (err) {
+  1130→        res.status(500).json({ success: false, error: err.message });
+  1131→    }
+  1132→});
+  1133→
+  1134→// Ensure SPA routes always return index.html instead of Not Found
+  1135→// Health check endpoint
+  1136→app.get('/health', (req, res) => {
+  1137→    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  1138→});
+  1139→
+  1140→app.get('*', (req, res) => {
+  1141→    if (req.path.startsWith('/api') || req.path.startsWith('/webhook/')) {
+  1142→        return res.status(404).json({ success: false, error: 'Route not found' });
+  1143→    }
+  1144→    res.sendFile(path.join(__dirname, 'index.html'));
+  1145→});
+  1146→
+  1147→// Set Telegram Chat Menu Button (Open button)
+  1148→const configureChatMenuButton = async (targetChatId = null) => {
+  1149→    try {
+  1150→        const https = require('https');
+  1151→        const sendReq = (chatIdVal = null) => {
+  1152→            const bodyObj = {
+  1153→                menu_button: {
+  1154→                    type: 'web_app',
+  1155→                    text: 'Open',
+  1156→                    web_app: { url: WEB_APP_URL_CACHED }
+  1157→                }
+  1158→            };
+  1159→            if (chatIdVal) {
+  1160→                bodyObj.chat_id = chatIdVal.toString();
+  1161→            }
+  1162→            const payload = JSON.stringify(bodyObj);
+  1163→
+  1164→            return new Promise((resolve) => {
+  1165→                const req = https.request({
+  1166→                    hostname: 'api.telegram.org',
+  1167→                    path: `/bot${TOKEN}/setChatMenuButton`,
+  1168→                    method: 'POST',
+  1169→                    headers: {
+  1170→                        'Content-Type': 'application/json',
+  1171→                        'Content-Length': Buffer.byteLength(payload)
+  1172→                    }
+  1173→                }, (res) => {
+  1174→                    let body = '';
+  1175→                    res.on('data', chunk => body += chunk);
+  1176→                    res.on('end', () => {
+  1177→                        try {
+  1178→                            const parsed = JSON.parse(body);
+  1179→                            if (parsed.ok) {
+  1180→                                console.log(`✓ Bot Menu Button "Open" set to: ${WEB_APP_URL}${chatIdVal ? ' for chat ' + chatIdVal : ' (default)'}`);
+  1181→                            }
+  1182→                        } catch (e) {}
+  1183→                        resolve();
+  1184→                    });
+  1185→                });
+  1186→                req.on('error', resolve);
+  1187→                req.write(payload);
+  1188→                req.end();
+  1189→            });
+  1190→        };
+  1191→
+  1192→        if (targetChatId) {
+  1193→            await sendReq(targetChatId);
+  1194→        }
+  1195→        await sendReq(null);
+  1196→    } catch (e) {
+  1197→        console.warn('Could not set ChatMenuButton:', e.message);
+  1198→    }
+  1199→};
+  1200→
+  1201→// Start Server
+  1202→const startServer = async () => {
+  1203→    try {
+  1204→        // Initialize subscriptions.json if missing
+  1205→        try {
+  1206→            await fs.access(subscriptionsPath);
+  1207→        } catch (e) {
+  1208→            await fs.writeFile(subscriptionsPath, JSON.stringify({ subscriptions: {} }, null, 2), 'utf-8');
+  1209→            console.log('✓ Created local subscriptions.json database');
+  1210→        }
+  1211→
+  1212→        // Configure Webhook if in Production (Render)
+  1213→        if (isProduction) {
+  1214→            const webhookUrl = `${WEB_APP_URL}/webhook/telegram`;
+  1215→            await bot.setWebHook(webhookUrl);
+  1216→            console.log('Webhook configured successfully');
+  1217→            
+  1218→            app.post('/webhook/telegram', (req, res) => {
+  1219→                bot.processUpdate(req.body);
+  1220→                res.sendStatus(200);
+  1221→            });
+  1222→        }
+  1223→
+  1224→        // Configure Open button with the correct Render URL
+  1225→        await configureChatMenuButton();
+  1226→
+  1227→        app.listen(PORT, '0.0.0.0', () => {
+  1228→            console.log(`Server running on port ${PORT}`);
+  1229→            console.log(`Bot mode: ${isProduction ? 'Webhook' : 'Polling'}`);
+  1230→        });
+  1231→    } catch (err) {
+  1232→        console.error('Failed to start server:', err);
+  1233→        process.exit(1);
+  1234→    }
+  1235→};
+  1236→
+  1237→// Manual setup endpoint - visit /setup to re-configure webhook & menu button (admin use)
+  1238→app.get('/setup', async (req, res) => {
+  1239→    try {
+  1240→        await configureChatMenuButton();
+  1241→        if (isProduction) {
+  1242→            const webhookUrl = `${WEB_APP_URL}/webhook/telegram`;
+  1243→            await bot.setWebHook(webhookUrl);
+  1244→            res.json({
+  1245→                success: true,
+  1246→                message: 'Webhook and Menu Button configured successfully',
+  1247→                webAppUrl: WEB_APP_URL_CACHED
+  1248→            });
+  1249→        } else {
+  1250→            res.json({
+  1251→                success: true,
+  1252→                message: 'Menu Button configured (local polling mode)',
+  1253→                webAppUrl: WEB_APP_URL_CACHED
+  1254→            });
+  1255→        }
+  1256→    } catch (err) {
+  1257→        res.status(500).json({ success: false, error: err.message });
+  1258→    }
+  1259→});
+  1260→
+  1261→startServer();
+  1262→
