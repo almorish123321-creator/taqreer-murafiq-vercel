@@ -1,177 +1,176 @@
-<div id="pdf-content" dir="ltr" style="width:842px; max-width:842px; min-height:1191px; height:1191px; box-sizing:border-box; background:#fff; position:relative; overflow:hidden; margin:0 auto; padding:0; font-family:'Liberation Serif','Times New Roman',serif;">
+<div id="pdf-content" dir="ltr" style="width:842px; max-width:842px; min-height:1150px; height:1150px; box-sizing:border-box; background:#fff; position:relative; overflow:hidden; margin:0 auto; padding:0; font-family:'NotoSansArabic','Noto Sans Arabic','Times New Roman',serif;">
 
-    <!-- ====== HEADER ====== -->
-    <!-- Seha Logo (LEFT) -->
-    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/Seha.png" alt="Seha" style="position:absolute; top:30px; left:41px; width:180px; height:90px; object-fit:contain;" onerror="this.src='https://i.ibb.co/3sks6b9/seha-logo-en.png'">
+    <!-- ====== HEADER (matching pdf-generator.ts exactly) ====== -->
+    <!-- Seha Logo: left at (40, 40), width 150 -->
+    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/Seha.png" alt="Seha" style="position:absolute; top:40px; left:40px; width:150px; object-fit:contain;" onerror="this.style.display='none'">
 
-    <!-- KSA Text (CENTER) -->
-    <div style="position:absolute; top:30px; left:0; width:842px; text-align:center;">
-        <p style="font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:16px; color:#000; margin:0; font-weight:normal;">المملكة العربية السعودية</p>
-    </div>
+    <!-- Kingdom Text: centered at ((841.89-260)/2, 50), width 260 -->
+    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/kingdom-text.jpg" alt="KSA" style="position:absolute; top:50px; left:291px; width:260px; object-fit:contain;" onerror="this.style.display='none'">
 
-    <!-- SVG Graphic (RIGHT) -->
-    <svg width="150" height="66" viewBox="0 0 150 66" style="position:absolute; top:36px; left:651px; opacity:0.7;">
-        <path d="M 0,10 L 40,40 L 90,10 L 130,30 L 150,0 M 40,40 L 60,66 L 90,10 M 60,66 L 130,30 M 90,10 L 110,66 L 130,30 M 110,66 L 150,60" stroke="#b0c4de" stroke-width="1.2" fill="none"/>
-    </svg>
+    <!-- Geometric Shape: right at (pageWidth-180, 40), width 170 -->
+    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/geometric-shape.jpg" alt="deco" style="position:absolute; top:40px; left:662px; width:170px; object-fit:contain; opacity:0.8;" onerror="this.style.display='none'">
 
-    <!-- Kingdom of Saudi Arabia (English) -->
-    <p style="position:absolute; top:55px; left:0; width:842px; text-align:center; font-family:'Liberation Serif','Times New Roman',serif; font-size:14px; color:#000000; font-weight:normal; margin:0;">Kingdom of Saudi Arabia</p>
+    <!-- ====== TITLE (matching pdf-generator.ts) ====== -->
+    <!-- After header moveDown(9) → title at ~y=178 -->
+    <!-- Arabic Title: color #306db5, fontSize 22, bold, centered -->
+    <h1 id="pdf-title-ar" style="position:absolute; top:178px; left:0; width:842px; text-align:center; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:22px; font-weight:bold; color:#306db5; margin:0; line-height:1.3;">تقرير إجازة مرضية</h1>
 
-    <!-- Arabic Title -->
-    <h1 id="pdf-title-ar" style="position:absolute; top:115px; left:0; width:842px; text-align:center; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:22px; font-weight:bold; color:#003366; margin:0;">تقرير إجازة مرضية</h1>
+    <!-- English Title: color #2c3e77, fontSize 19, bold, centered -->
+    <h2 id="pdf-title-en" style="position:absolute; top:208px; left:0; width:842px; text-align:center; font-family:'Times New Roman',serif; font-size:19px; font-weight:bold; color:#2c3e77; margin:0; line-height:1.3;">Sick Leave Report</h2>
 
-    <!-- English Title -->
-    <h2 id="pdf-title-en" style="position:absolute; top:148px; left:0; width:842px; text-align:center; font-family:'Liberation Serif','Times New Roman',serif; font-size:16px; font-weight:bold; color:#333333; margin:0;">Sick Leave Report</h2>
+    <!-- ====== TABLE (matching pdf-generator.ts exactly) ====== -->
+    <!-- startX=40, startY=250, tableWidth=760 -->
+    <!-- col1W=160 (EN Label) | col2W=440 (Values) | col3W=160 (AR Label) -->
+    <!-- When double value: col2W splits into 220 | 220 -->
+    <!-- Label color: #2b5d88, Value color: #29396e, Border: #e0e0e0, Alt bg: #f7f7f7 -->
 
-    <!-- ====== TABLE ====== -->
-    <!-- Table: X=42 to X=810, width=768 -->
-    <!-- Cols: EN Label 42-204(162) | EN Value 204-442(238) | AR Value 442-681(239) | AR Label 681-810(129) -->
-    <!-- Row height: 42px, starts at Y=185 -->
+    <div id="pdf-table" style="position:absolute; top:250px; left:40px; width:760px;">
 
-    <div id="pdf-table" style="position:absolute; top:185px; left:42px; width:768px;">
-        <!-- Row 1: Leave ID (white bg) -->
-        <div style="display:flex; height:42px; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Leave ID</div>
-            <div id="pdf-leave-id" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">رمز الإجازة</div>
+        <!-- Row 1: Leave ID (no bg - white) -->
+        <!-- Label fontSize=14, Value fontSize=14 -->
+        <div style="display:flex; min-height:40px; border-bottom:1px solid #e0e0e0; border-top:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Leave ID</div>
+            <div id="pdf-leave-id" style="width:440px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">رمز الإجازة</div>
         </div>
 
-        <!-- Row 2: Leave Duration (DARK NAVY bg) -->
-        <div style="display:flex; height:42px; background-color:#1a2e5b; border-bottom:1px solid #1a2e5b;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #2d4478; font-size:13px; font-weight:bold; color:#ffffff;">Leave Duration</div>
-            <div id="pdf-duration-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #2d4478; font-size:13px; color:#ffffff;"></div>
-            <div id="pdf-duration-ar" dir="rtl" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #2d4478; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#ffffff;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#ffffff;">مدة الإجازة</div>
+        <!-- Row 2: Leave Duration (SPECIAL - dark blue bg #2c3e77, white text) -->
+        <!-- rowH=45, durFontSize=13, all text white -->
+        <div style="display:flex; height:45px; background-color:#2c3e77; border-bottom:1px solid #2c3e77; border-left:1px solid #2c3e77; border-right:1px solid #2c3e77;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #ffffff33; font-size:13px; font-weight:bold; color:#ffffff; font-family:'Times New Roman',serif;">Leave Duration</div>
+            <div id="pdf-duration-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #ffffff33; font-size:13px; color:#ffffff; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-duration-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #ffffff33; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:13px; color:#ffffff;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:13px; font-weight:bold; color:#ffffff;">مدة الإجازة</div>
         </div>
 
-        <!-- Row 3: Admission Date (light gray bg) -->
-        <div style="display:flex; height:42px; background-color:#f9f9f9; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Admission Date</div>
-            <div id="pdf-admission-g" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div id="pdf-admission-h" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">تاريخ الدخول</div>
+        <!-- Row 3: Admission Date (bg #f7f7f7, double value) -->
+        <div style="display:flex; min-height:40px; background-color:#f7f7f7; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Admission Date</div>
+            <div id="pdf-admission-g" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-admission-h" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">تاريخ الدخول</div>
         </div>
 
-        <!-- Row 4: Discharge Date (white bg) -->
-        <div style="display:flex; height:42px; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Discharge Date</div>
-            <div id="pdf-discharge-g" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div id="pdf-discharge-h" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">تاريخ الخروج</div>
+        <!-- Row 4: Discharge Date (no bg, double value) -->
+        <div style="display:flex; min-height:40px; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Discharge Date</div>
+            <div id="pdf-discharge-g" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-discharge-h" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">تاريخ الخروج</div>
         </div>
 
-        <!-- Row 5: Issue Date (light gray bg) -->
-        <div style="display:flex; height:42px; background-color:#f9f9f9; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Issue Date</div>
-            <div id="pdf-issue-date" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">تاريخ إصدار التقرير</div>
+        <!-- Row 5: Issue Date (no bg, single value) -->
+        <div style="display:flex; min-height:40px; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Issue Date</div>
+            <div id="pdf-issue-date" style="width:440px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">تاريخ إصدار التقرير</div>
         </div>
 
-        <!-- Row 6: Name (white bg) -->
-        <div style="display:flex; height:42px; border-bottom:1px solid #d0d0d0;">
-            <div id="pdf-name-label-en" style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Name</div>
-            <div id="pdf-name-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div id="pdf-name-ar" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#333333;"></div>
-            <div id="pdf-name-label-ar" style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">الاسم</div>
+        <!-- Row 6: Name (bg #f7f7f7, double value, uppercaseEn, fontSize 13) -->
+        <div style="display:flex; min-height:40px; background-color:#f7f7f7; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div id="pdf-name-label-en" style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Name</div>
+            <div id="pdf-name-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:13px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-name-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; color:#29396e;"></div>
+            <div id="pdf-name-label-ar" style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">الاسم</div>
         </div>
 
-        <!-- Row 7: National ID (light gray bg) -->
-        <div style="display:flex; height:42px; background-color:#f9f9f9; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">National ID / Iqama</div>
-            <div id="pdf-national-id" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 4px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">رقم الهوية/<span style="font-family:'DejaVu Sans',sans-serif;">/</span>الاقامه</div>
+        <!-- Row 7: National ID / Iqama (no bg, single value) -->
+        <div style="display:flex; min-height:40px; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">National ID / Iqama</div>
+            <div id="pdf-national-id" style="width:440px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">رقم الهوية / الإقامة</div>
         </div>
 
-        <!-- Row 8: Nationality (white bg) -->
-        <div style="display:flex; height:42px; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Nationality</div>
-            <div id="pdf-nationality-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;">Saudi Arabia</div>
-            <div id="pdf-nationality-ar" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#333333;">السعودية</div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">الجنسية</div>
+        <!-- Row 8: Nationality (bg #f7f7f7, double value) -->
+        <div style="display:flex; min-height:40px; background-color:#f7f7f7; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Nationality</div>
+            <div id="pdf-nationality-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-nationality-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; color:#29396e;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">الجنسية</div>
         </div>
 
-        <!-- Row 9: Relation (hidden by default, for companion) -->
-        <div id="pdf-relation-row" style="display:none; height:42px; background-color:#f9f9f9; border-bottom:1px solid #d0d0d0;">
-            <div style="display:flex; height:42px; width:100%;">
-                <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Relation</div>
-                <div id="pdf-relation-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-                <div id="pdf-relation-ar" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#333333;"></div>
-                <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">صلة القرابة</div>
-            </div>
+        <!-- Row 9: Relation (hidden by default, for companion type, bg #f7f7f7) -->
+        <div id="pdf-relation-row" style="display:none; min-height:40px; background-color:#f7f7f7; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Relation</div>
+            <div id="pdf-relation-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-relation-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; color:#29396e;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">صلة القرابة</div>
         </div>
 
-        <!-- Row 10: Employer (white bg) -->
-        <div style="display:flex; height:42px; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Employer</div>
-            <div id="pdf-employer-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div id="pdf-employer-ar" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#333333;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">جهة العمل</div>
+        <!-- Row 10: Employer (bg #f7f7f7, double value) -->
+        <div style="display:flex; min-height:40px; background-color:#f7f7f7; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Employer</div>
+            <div id="pdf-employer-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-employer-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; color:#29396e;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">جهة العمل</div>
         </div>
 
-        <!-- Row 11: Practitioner/Physician Name (light gray bg) -->
-        <div style="display:flex; height:42px; background-color:#f9f9f9; border-bottom:1px solid #d0d0d0;">
-            <div id="pdf-doc-label-en" style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Practitioner Name</div>
-            <div id="pdf-doctor-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div id="pdf-doctor-ar" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#333333;"></div>
-            <div id="pdf-doc-label-ar" style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">اسم الممارس</div>
+        <!-- Row 11: Practitioner Name (bg #f7f7f7, double value, uppercaseEn, fontSize 13) -->
+        <div style="display:flex; min-height:40px; background-color:#f7f7f7; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div id="pdf-doc-label-en" style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Practitioner Name</div>
+            <div id="pdf-doctor-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:13px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-doctor-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; color:#29396e;"></div>
+            <div id="pdf-doc-label-ar" style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">اسم الممارس</div>
         </div>
 
-        <!-- Row 12: Position (white bg) -->
-        <div style="display:flex; height:42px; border-bottom:1px solid #d0d0d0;">
-            <div style="width:162px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; font-weight:bold; color:#0056b3;">Position</div>
-            <div id="pdf-position-en" style="width:238px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-size:13px; color:#333333;"></div>
-            <div id="pdf-position-ar" style="width:239px; display:flex; align-items:center; padding:0 8px; border-left:1px solid #d0d0d0; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; color:#333333;"></div>
-            <div style="width:129px; display:flex; align-items:center; justify-content:center; padding:0 8px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#0056b3;">المسمى الوظيفي</div>
+        <!-- Row 12: Position (no bg, double value) -->
+        <div style="display:flex; min-height:40px; border-bottom:1px solid #e0e0e0; border-left:1px solid #e0e0e0; border-right:1px solid #e0e0e0;">
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; border-left:1px solid #e0e0e0; font-size:14px; font-weight:bold; color:#2b5d88; font-family:'Times New Roman',serif;">Position</div>
+            <div id="pdf-position-en" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-size:14px; color:#29396e; font-family:'Times New Roman',serif;"></div>
+            <div id="pdf-position-ar" dir="rtl" style="width:220px; display:flex; align-items:center; justify-content:center; padding:0 10px; border-left:1px solid #e0e0e0; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; color:#29396e;"></div>
+            <div style="width:160px; display:flex; align-items:center; justify-content:center; padding:0 15px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:14px; font-weight:bold; color:#2b5d88;">المسمى الوظيفي</div>
         </div>
     </div>
 
-    <!-- ====== FOOTER ====== -->
-    <!-- Vertical Divider -->
-    <div style="position:absolute; top:720px; left:426px; width:1px; height:280px; background-color:#d0d0d0;"></div>
+    <!-- ====== FOOTER (matching pdf-generator.ts) ====== -->
+    <!-- footerY = pageHeight - 400 = 750 -->
+    <!-- Vertical divider at centerX = 421, height 150 -->
+    <div style="position:absolute; top:750px; left:421px; width:1px; height:150px; background-color:#e0e0e0;"></div>
 
-    <!-- LEFT FOOTER: QR + Verification + Time/Date -->
-    <!-- QR Code -->
-    <div id="pdf-qrcode" style="position:absolute; top:710px; left:180px; width:100px; height:100px;"></div>
+    <!-- LEFT FOOTER: QR + Verification -->
+    <!-- QR Code: leftCenterX - 20 = 190, footerY = 750, width 100 -->
+    <div id="pdf-qrcode" style="position:absolute; top:750px; left:190px; width:100px; height:100px;"></div>
 
-    <!-- Verification Text Arabic -->
-    <p style="position:absolute; top:825px; left:60px; width:340px; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:11px; font-weight:bold; color:#000000; margin:0; line-height:1.7;">للتأكد من صحة التقرير برجاء زيارة الموقع الرسمي من خلال هذا الرابط موقع صحتي</p>
+    <!-- Verification Arabic: leftCenterX - 125 = 85, footerY + 110 = 860 -->
+    <p style="position:absolute; top:860px; left:85px; width:300px; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:10px; font-weight:bold; color:#000000; margin:0; line-height:1.6; text-align:center;">للتحقق من بيانات التقرير يرجى التأكد من زيارة موقع منصة صحة الرسمي</p>
 
-    <!-- Verification Text English -->
-    <p style="position:absolute; top:865px; left:100px; font-family:'Liberation Serif','Times New Roman',serif; font-size:11px; color:#000000; margin:0;">To check the report please visit Seha's offical website</p>
+    <!-- Verification English: leftCenterX - 100 = 110, footerY + 150 = 900 -->
+    <p style="position:absolute; top:900px; left:110px; width:250px; font-family:'Times New Roman',serif; font-size:10px; font-weight:bold; color:#000000; margin:0; text-align:center;">To check the report please visit Seha's official website</p>
 
-    <!-- URL -->
-    <p style="position:absolute; top:885px; left:130px; font-family:'Arimo','Liberation Sans',sans-serif; font-size:11px; color:#0000ff; text-decoration:underline; margin:0;">www.seha.sa/#/inquiries/slenquiry</p>
+    <!-- URL: leftCenterX - 110 = 100, footerY + 180 = 930 -->
+    <p style="position:absolute; top:930px; left:100px; width:250px; font-family:'Times New Roman',serif; font-size:9px; color:#0000ff; text-decoration:underline; margin:0; text-align:center;">www.seha.sa/#/inquiries/slenquiry</p>
 
-    <!-- Time -->
-    <p id="pdf-time" style="position:absolute; top:940px; left:43px; font-family:'Liberation Serif','Times New Roman',serif; font-size:13px; font-weight:bold; color:#000000; margin:0;">10:38 AM</p>
-
-    <!-- Date -->
-    <p id="pdf-day-date" style="position:absolute; top:970px; left:43px; font-family:'Liberation Serif','Times New Roman',serif; font-size:13px; font-weight:bold; color:#000000; margin:0;">Wednesday ,12 August 2026</p>
-
-    <!-- RIGHT FOOTER: MOH Logo + Hospital Name + NHIC Logo -->
-    <!-- MOH Logo -->
-    <div id="pdf-moh-logo-container" style="position:absolute; top:705px; left:600px; width:110px; height:110px; display:none;">
-        <img id="pdf-moh-logo" src="" alt="MOH" style="width:110px; height:110px; object-fit:contain;">
+    <!-- RIGHT FOOTER: Hospital Info -->
+    <!-- rightCenterX = centerX + centerX/2 = 631 -->
+    <!-- Hospital Logo: rightCenterX - 50 = 581, footerY = 750, 100x100 -->
+    <div id="pdf-moh-logo-container" style="position:absolute; top:750px; left:581px; width:100px; height:100px; display:none;">
+        <img id="pdf-moh-logo" src="" alt="MOH" style="width:100px; height:100px; object-fit:contain;">
+    </div>
+    <div style="position:absolute; top:750px; left:581px; width:100px; height:100px;">
+        <img id="pdf-hospital-logo" src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/Saudi_Ministry_of_Health.JPG" alt="Hospital" style="width:100px; height:100px; object-fit:contain;" onerror="this.src='https://i.ibb.co/L5k6nN4/moh-logo.png'">
     </div>
 
-    <!-- Hospital Logo (default MOH) -->
-    <div style="position:absolute; top:705px; left:600px; width:110px; height:110px;">
-        <img id="pdf-hospital-logo" src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/Saudi_Ministry_of_Health.JPG" alt="Hospital" style="width:110px; height:110px; object-fit:contain;" onerror="this.src='https://i.ibb.co/L5k6nN4/moh-logo.png'">
-    </div>
+    <!-- Hospital Name Arabic: rightCenterX - 125 = 506, footerY + 100 = 850 -->
+    <h3 id="pdf-hospital-ar" style="position:absolute; top:855px; left:506px; width:250px; text-align:center; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:12px; font-weight:bold; color:#000000; margin:0;">مستشفى الملك فهد التخصصي</h3>
 
-    <!-- Hospital Name Arabic (right side, not full width centered) -->
-    <h3 id="pdf-hospital-ar" style="position:absolute; top:825px; left:450px; width:370px; text-align:center; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:13px; font-weight:bold; color:#000000; margin:0;">مستشفى الملك فهد التخصصي</h3>
+    <!-- Hospital Name English: rightCenterX - 125 = 506, footerY + 135 = 885 -->
+    <h4 id="pdf-hospital-en" style="position:absolute; top:878px; left:506px; width:250px; text-align:center; font-family:'Times New Roman',serif; font-size:12px; font-weight:bold; color:#000000; margin:0;">King Fahad Specialist Hospital</h4>
 
-    <!-- Hospital Name English -->
-    <h4 id="pdf-hospital-en" style="position:absolute; top:848px; left:450px; width:370px; text-align:center; font-family:'Liberation Serif','Times New Roman',serif; font-size:12px; font-weight:bold; color:#000000; margin:0;">King Fahad Specialist Hospital</h4>
+    <!-- License Number: rightCenterX - 125 = 506, footerY + 165 = 915 -->
+    <p id="pdf-license" style="position:absolute; top:915px; left:506px; width:250px; text-align:center; font-family:'NotoSansArabic','Noto Sans Arabic',sans-serif; font-size:12px; color:#000000; display:none; margin:0;"><span id="pdf-license-val"></span></p>
 
-    <!-- License Number -->
-    <p id="pdf-license" style="position:absolute; top:870px; left:450px; width:370px; text-align:center; font-family:'Noto Sans Arabic','NotoSansArabic',sans-serif; font-size:10px; color:#555; display:none; margin:0;">رقم الترخيص: <span id="pdf-license-val"></span></p>
+    <!-- ====== BOTTOM FOOTER ====== -->
+    <!-- bottomY = pageHeight - 150 = 1000 -->
+    <!-- Time: (40, bottomY) -->
+    <p id="pdf-time" style="position:absolute; top:1000px; left:40px; font-family:'Times New Roman',serif; font-size:12px; font-weight:bold; color:#000000; margin:0;">10:38 AM</p>
 
-    <!-- NHIC Logo -->
-    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/dfhZfyJM_400x400 (1).jpg" alt="NHIC" style="position:absolute; top:920px; left:620px; width:140px; height:65px; object-fit:contain;" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/9/90/%D8%A7%D9%84%D9%85%D8%B1%D9%83%D8%B2_%D8%A7%D9%84%D9%88%D8%B7%D9%86%D9%8A_%D9%84%D9%84%D9%85%D8%B9%D9%84%D9%88%D9%85%D8%A7%D8%AA_%D8%A7%D9%84%D8%B5%D8%AD%D9%8A%D8%A9.png'>
+    <!-- Date: (40, bottomY + 20 = 1020) -->
+    <p id="pdf-day-date" style="position:absolute; top:1020px; left:40px; font-family:'Times New Roman',serif; font-size:12px; font-weight:bold; color:#000000; margin:0;">Wednesday ,12 August 2026</p>
+
+    <!-- National Health Info Logo: (pageWidth-160, bottomY-20 = 980), width 120 -->
+    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/national-health-info.jpg" alt="NHIC" style="position:absolute; top:980px; left:682px; width:120px; object-fit:contain;" onerror="this.style.display='none'">
+
+    <!-- LEAN Logo: next to NHIC -->
+    <img src="./%D8%A7%D9%84%D8%B4%D8%B9%D8%A7%D8%B1%D8%A7%D8%AA/dfhZfyJM_400x400 (1).jpg" alt="Lean" style="position:absolute; top:990px; left:560px; width:55px; height:55px; object-fit:contain; border-radius:50%;" onerror="this.style.display='none'">
 
 </div>

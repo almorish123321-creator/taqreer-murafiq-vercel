@@ -889,26 +889,40 @@ else document.body.removeAttribute('dir');
             return;
         }
         try {
-            // Extract raw base64 data from data URI
+            // Use iframe approach — more reliable in Telegram WebView
+            // than window.open() which is often blocked
             const rawBase64 = app.state.lastPdfBase64.split(',')[1] || app.state.lastPdfBase64;
-            const binaryStr = atob(rawBase64);
-            const bytes = new Uint8Array(binaryStr.length);
-            for (let i = 0; i < binaryStr.length; i++) {
-                bytes[i] = binaryStr.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: 'application/pdf' });
-            const blobUrl = URL.createObjectURL(blob);
             
-            const printWindow = window.open(blobUrl, '_blank');
-            if (printWindow) {
-                printWindow.addEventListener('load', function() {
-                    setTimeout(() => { printWindow.print(); }, 500);
-                });
-            } else {
-                this.downloadLastPdf();
+            // Create hidden iframe
+            let iframe = document.getElementById('print-iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'print-iframe';
+                iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none;';
+                document.body.appendChild(iframe);
             }
-            // Clean up blob URL after some time
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+            
+            // Write PDF data to iframe
+            iframe.src = 'data:application/pdf;base64,' + rawBase64;
+            iframe.onload = function() {
+                setTimeout(() => {
+                    try {
+                        iframe.contentWindow.print();
+                    } catch(e) {
+                        // Fallback: if iframe print fails (same-origin policy),
+                        // try opening in new window
+                        const blob = new Blob([Uint8Array.from(atob(rawBase64), c => c.charCodeAt(0))], {type:'application/pdf'});
+                        const blobUrl = URL.createObjectURL(blob);
+                        const w = window.open(blobUrl, '_blank');
+                        if (w) {
+                            w.addEventListener('load', () => { setTimeout(() => w.print(), 500); });
+                        } else {
+                            app.downloadLastPdf();
+                        }
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+                    }
+                }, 600);
+            };
         } catch(e) {
             console.error('Print failed:', e);
             this.downloadLastPdf();
