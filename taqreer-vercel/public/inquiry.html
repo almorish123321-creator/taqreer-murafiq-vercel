@@ -6,1019 +6,315 @@
     <title>الاستعلام عن الإجازات المرضية - منصة صحة</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/inquiry.css">
     <style>
-        /* ===== Reset & Base ===== */
-        *, *::before, *::after {
+        html, body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Noto Sans Arabic', 'Tajawal', sans-serif;
-            background-color: #f5f7fa;
-            color: #333;
+            width: 100%;
+            overflow-x: hidden;
             direction: rtl;
-            text-align: right;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            line-height: 1.7;
         }
-
-        a {
-            text-decoration: none;
-            color: inherit;
-        }
-
-        /* ===== Header / Nav ===== */
-        .header {
-            background: #fff;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 72px;
-        }
-
-        .logo-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-
-        .logo-link img {
-            height: 48px;
-            width: auto;
-        }
-
-        .logo-link .logo-text {
-            font-size: 22px;
-            font-weight: 700;
-            color: #306db5;
-        }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            list-style: none;
-        }
-
-        .nav-links a {
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 14.5px;
-            font-weight: 500;
-            color: #555;
-            transition: all 0.2s ease;
-        }
-
-        .nav-links a:hover {
-            color: #306db5;
-            background: rgba(48, 109, 181, 0.06);
-        }
-
-        .nav-links a.active {
-            color: #306db5;
-            background: rgba(48, 109, 181, 0.1);
-            font-weight: 600;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-shrink: 0;
-        }
-
-        .btn-login {
-            padding: 8px 20px;
-            border: 2px solid #306db5;
-            border-radius: 8px;
-            background: transparent;
-            color: #306db5;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-login:hover {
-            background: #306db5;
-            color: #fff;
-        }
-
-        .btn-create-account {
-            padding: 8px 20px;
-            border: none;
-            border-radius: 8px;
-            background: #306db5;
-            color: #fff;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-create-account:hover {
-            background: #285a9a;
-        }
-
-        /* Mobile menu */
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-        }
-
-        .mobile-menu-btn svg {
-            width: 28px;
-            height: 28px;
-            stroke: #333;
-        }
-
-        /* ===== Main Content ===== */
-        .main-content {
-            flex: 1;
-            max-width: 900px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 40px 24px 60px;
-        }
-
-        .page-title {
-            font-size: 28px;
-            font-weight: 700;
-            color: #306db5;
-            margin-bottom: 12px;
-            text-align: center;
-        }
-
-        .page-subtitle {
-            font-size: 15px;
-            color: #666;
-            text-align: center;
-            line-height: 1.9;
-            margin-bottom: 40px;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* ===== Form Card ===== */
-        .form-card {
-            background: #fff;
-            border-radius: 16px;
-            padding: 36px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-            margin-bottom: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group:last-of-type {
-            margin-bottom: 24px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 14.5px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 15px;
-            color: #333;
-            direction: rtl;
-            background: #fafafa;
-            transition: all 0.2s ease;
-            outline: none;
-        }
-
-        .form-input::placeholder {
-            color: #aaa;
-        }
-
-        .form-input:focus {
-            border-color: #306db5;
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(48, 109, 181, 0.1);
-        }
-
-        .form-input:disabled {
-            background: #f0f0f0;
-            color: #999;
-            cursor: not-allowed;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background: #306db5;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-submit:hover {
-            background: #285a9a;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(48, 109, 181, 0.3);
-        }
-
-        .btn-submit:active {
-            transform: translateY(0);
-        }
-
-        .btn-submit:disabled {
-            background: #94b8d9;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* ===== Error Message ===== */
-        .error-alert {
-            display: none;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 8px;
-            padding: 14px 18px;
-            margin-bottom: 20px;
-            color: #b91c1c;
-            font-size: 14.5px;
-            line-height: 1.8;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .error-alert.show {
-            display: flex;
-        }
-
-        .error-alert svg {
-            flex-shrink: 0;
-            width: 20px;
-            height: 20px;
-        }
-
-        /* ===== Results Section ===== */
-        .results-card {
-            display: none;
-            background: #fff;
-            border-radius: 16px;
-            padding: 36px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-            animation: fadeInUp 0.4s ease;
-        }
-
-        .results-card.show {
-            display: block;
-        }
-
-        .results-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #306db5;
-            margin-bottom: 24px;
-            padding-bottom: 14px;
-            border-bottom: 2px solid #e8eef5;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .results-title svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-
-        .result-item {
-            background: #f8fafc;
-            border-radius: 10px;
-            padding: 16px 18px;
-            border: 1px solid #e8eef5;
-        }
-
-        .result-item.full-width {
-            grid-column: 1 / -1;
-        }
-
-        .result-label {
-            font-size: 13px;
-            color: #888;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-
-        .result-value {
-            font-size: 15.5px;
-            color: #1a1a2e;
-            font-weight: 600;
-        }
-
-        .btn-reset {
-            width: 100%;
-            padding: 14px;
-            background: transparent;
-            color: #306db5;
-            border: 2px solid #306db5;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-reset:hover {
-            background: #306db5;
-            color: #fff;
-        }
-
-        /* ===== Spinner Overlay ===== */
-        .spinner-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(2px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .spinner-overlay.show {
-            display: flex;
-        }
-
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e0e7ef;
-            border-top-color: #306db5;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        .spinner-text {
-            font-size: 15px;
-            color: #306db5;
-            font-weight: 600;
-        }
-
-        /* ===== Footer ===== */
-        .footer {
-            background: #1a1a2e;
-            color: #fff;
-            padding: 50px 24px 0;
-            margin-top: auto;
-        }
-
-        .footer-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .footer-top {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr;
-            gap: 40px;
-            padding-bottom: 40px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .footer-brand img {
-            height: 48px;
-            margin-bottom: 16px;
-            filter: brightness(0) invert(1);
-        }
-
-        .footer-brand .footer-logo-text {
-            font-size: 20px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 12px;
-        }
-
-        .footer-brand p {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.9;
-        }
-
-        .footer-section h3 {
-            font-size: 16px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 16px;
-        }
-
-        .footer-links {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .footer-links a {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-            transition: color 0.2s ease;
-        }
-
-        .footer-links a:hover {
-            color: #fff;
-        }
-
-        .footer-contact-info {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .footer-contact-info li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .footer-contact-info svg {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-            stroke: #306db5;
-        }
-
-        .footer-contact-info a {
-            color: rgba(255, 255, 255, 0.7);
-            transition: color 0.2s ease;
-        }
-
-        .footer-contact-info a:hover {
-            color: #fff;
-        }
-
-        .footer-bottom {
-            padding: 24px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .footer-copyright {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .footer-logos {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
-
-        .footer-logos img {
-            height: 40px;
-            width: auto;
-            filter: brightness(0) invert(1);
-            opacity: 0.7;
-            transition: opacity 0.2s ease;
-        }
-
-        .footer-logos img:hover {
-            opacity: 1;
-        }
-
-        /* ===== Animations ===== */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(16px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* ===== Responsive ===== */
-        @media (max-width: 768px) {
-            .header-inner {
-                height: 64px;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .nav-links.open {
-                display: flex;
-                flex-direction: column;
-                position: absolute;
-                top: 64px;
-                right: 0;
-                left: 0;
-                background: #fff;
-                padding: 16px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-                gap: 4px;
-                z-index: 99;
-            }
-
-            .nav-links.open a {
-                padding: 12px 16px;
-                font-size: 15px;
-            }
-
-            .mobile-menu-btn {
-                display: block;
-            }
-
-            .header-actions .btn-login,
-            .header-actions .btn-create-account {
-                padding: 6px 14px;
-                font-size: 13px;
-            }
-
-            .main-content {
-                padding: 24px 16px 40px;
-            }
-
-            .page-title {
-                font-size: 22px;
-            }
-
-            .page-subtitle {
-                font-size: 14px;
-                margin-bottom: 28px;
-            }
-
-            .form-card {
-                padding: 24px 20px;
-            }
-
-            .results-card {
-                padding: 24px 20px;
-            }
-
-            .results-grid {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-
-            .footer-top {
-                grid-template-columns: 1fr;
-                gap: 28px;
-            }
-
-            .footer-bottom {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .footer-logos img {
-                height: 32px;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .header-actions .btn-login {
-                display: none;
-            }
-
-            .logo-link .logo-text {
-                font-size: 18px;
-            }
-        }
+        html { direction: ltr !important; }
+        body { direction: rtl; font-family: 'Cairo', sans-serif; }
     </style>
 </head>
 <body>
 
-    <!-- ===== Header ===== -->
-    <header class="header">
-        <div class="header-inner">
-            <a href="/" class="logo-link">
-                <img src="الشعارات/Seha.png" alt="منصة صحة">
-                <span class="logo-text">صحة</span>
+<!-- Spinner Overlay -->
+<div id="spinner" class="spinner-overlay">
+    <div class="spinner-circle"></div>
+    <div class="spinner-text">جاري التحقق من البيانات...</div>
+</div>
+
+<!-- Header / Navbar -->
+<div style="z-index: 99; opacity: 1; transform: none;">
+    <nav class="header navbar-expand-lg navbar-light px-4">
+        <div class="nav-container">
+            <a href="https://www.seha.sa/#/">
+                <img src="/assets/images/seha_logo.4dde29e5c4f38890ccf9787220bcc5be.svg" alt="logo" class="logo">
             </a>
-
-            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="القائمة">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
-
-            <nav>
-                <ul class="nav-links" id="navLinks">
-                    <li><a href="/">الرئيسية</a></li>
-                    <li><a href="/services">الخدمات</a></li>
-                    <li><a href="/inquiry.html" class="active">الاستعلامات</a></li>
-                    <li><a href="/faq">الأسئلة الشائعة</a></li>
-                </ul>
-            </nav>
-
-            <div class="header-actions">
-                <button class="btn-login">تسجيل الدخول</button>
-                <button class="btn-create-account">إنشاء حساب</button>
+            <div class="d-lg-none d-xl-none justify-content-end menu">
+                <button aria-controls="responsive-navbar-nav" type="button" aria-label="Toggle navigation" id="menu_but" class="d-inline-flex menu-img navbar-toggler collapsed" onclick="toggleMenu()">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+            <div class="white justify-content-around navbar-collapse collapse" id="responsive-navbar-nav" style="display: none;">
+                <div class="navbar justify-content-around navbar-nav">
+                    <a data-rr-ui-event-key="1" class="link nav-link active" href="https://www.seha.sa/#/">
+                        الرئيسية
+                    </a>
+                    <a data-rr-ui-event-key="2" class="link nav-link" href="https://www.seha.sa/#/services">
+                        الخدمات
+                    </a>
+                    <a data-rr-ui-event-key="3" class="link nav-link" href="https://www.seha.sa/#/inquiries">
+                        الاستعلامات
+                    </a>
+                    <a data-rr-ui-event-key="4" class="link nav-link" href="https://seha.sa/#/faq">
+                        الأسئلة الشائعة
+                    </a>
+                </div>
+                <div class="navbar justify-content-end navbar-nav">
+                    <a data-rr-ui-event-key="6" class="nav-link" href="https://www.seha.sa/#/iamredirection/1">
+                        <p>إنشاء حساب</p>
+                    </a>
+                    <a data-rr-ui-event-key="7" class="login nav-link" href="https://www.seha.sa/#/account/login" style="display: flex; align-items: center; gap: 5px;">
+                        <img src="/assets/" height="15" alt="logo" class="">
+                        <p style="margin: 0;">تسجيل الدخول</p>
+                    </a>
+                </div>
             </div>
         </div>
-    </header>
+    </nav>
+</div>
 
-    <!-- ===== Spinner Overlay ===== -->
-    <div class="spinner-overlay" id="spinnerOverlay">
-        <div class="spinner"></div>
-        <span class="spinner-text">جاري الاستعلام...</span>
-    </div>
+<!-- Main Content -->
+<div class="inner-page inquiries-container">
+    <h1 class="heading">الإجازات المرضية</h1>
+    <p class="sub-heading">
+        خدمة الاستعلام عن الإجازات المرضية تتيح لك الاستعلام عن حالة طلبك للإجازة ويمكنك طباعتها عن طريق تطبيق صحتي
+    </p>
+    <div class="row justify-content-center mt-1">
+        <div class="col-md-5 p-4">
+            <p id="error-message" class="alert alert-danger" style="display: none;"></p>
 
-    <!-- ===== Main Content ===== -->
-    <main class="main-content">
-        <h1 class="page-title">الإجازات المرضية</h1>
-        <p class="page-subtitle">
-            خدمة الاستعلام عن الإجازات المرضية تتيح لك الاستعلام عن حالة طلبك للإجازة ويمكنك طباعتها عن طريق تطبيق صحتي
-        </p>
-
-        <!-- Form Card -->
-        <div class="form-card" id="formCard">
-            <div class="error-alert" id="errorAlert">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <span id="errorText">حدث خطأ أثناء الاستعلام. يرجى التأكد من البيانات والمحاولة مرة أخرى.</span>
-            </div>
-
-            <form id="inquiryForm" novalidate>
+            <form id="inquiry-form">
                 <div class="form-group">
-                    <label class="form-label" for="serviceCode">رمز الخدمة</label>
-                    <input
-                        type="text"
-                        id="serviceCode"
-                        name="service_code"
-                        class="form-input"
-                        placeholder="رمز الخدمة"
-                        maxlength="20"
-                        autocomplete="off"
-                        required
-                    >
+                    <input type="text" name="service_code" id="service_code" maxlength="20" placeholder="رمز الخدمة" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label></label>
+                    <input type="text" name="national_id" id="national_id" maxlength="10" pattern="\d*" placeholder="رقم الهوية / الإقامة" class="form-control">
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="nationalId">رقم الهوية / الإقامة</label>
-                    <input
-                        type="text"
-                        id="nationalId"
-                        name="national_id"
-                        class="form-input"
-                        placeholder="رقم الهوية / الإقامة"
-                        maxlength="10"
-                        pattern="\\d{10}"
-                        inputmode="numeric"
-                        autocomplete="off"
-                        required
-                    >
+                <div id="results-section" class="results-inquiery row" style="display: none;">
+                    <div class="col-md-6">
+                        <span>الاسم: </span> <span id="res-name"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <span>تاريخ إصدار تقرير الإجازة:</span> <span id="res-issue-date"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <span>تبدأ من:</span> <span id="res-date-from"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <span>وحتى:</span> <span id="res-date-to"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <span>المدة بالأيام:</span> <span id="res-day-count"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <span>اسم الطبيب:</span> <span id="res-doctor-name"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <span>المسمى الوظيفي:</span> <span id="res-doctor-specialty"></span>
+                    </div>
+                    <div class="col-md-12 text-center mt-3">
+                        <button type="button" class="btn btn-primary" onclick="resetForm()">
+                            استعلام جديد
+                        </button>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn-submit" id="btnSubmit">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
+                <button type="submit" id="submit-btn" class="btn btn-primary mt-3">
                     استعلام
                 </button>
             </form>
         </div>
-
-        <!-- Results Card -->
-        <div class="results-card" id="resultsCard">
-            <div class="results-title">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                نتيجة الاستعلام
-            </div>
-
-            <div class="results-grid">
-                <div class="result-item">
-                    <div class="result-label">الاسم</div>
-                    <div class="result-value" id="resName">—</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">تاريخ إصدار تقرير الإجازة</div>
-                    <div class="result-value" id="resIssueDate">—</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">تبدأ من</div>
-                    <div class="result-value" id="resDateFrom">—</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">وحتى</div>
-                    <div class="result-value" id="resDateTo">—</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">المدة بالأيام</div>
-                    <div class="result-value" id="resDayCount">—</div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">اسم الطبيب</div>
-                    <div class="result-value" id="resDoctorName">—</div>
-                </div>
-                <div class="result-item full-width">
-                    <div class="result-label">المسمى الوظيفي</div>
-                    <div class="result-value" id="resDoctorSpecialty">—</div>
-                </div>
-            </div>
-
-            <button type="button" class="btn-reset" id="btnReset">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="1 4 1 10 7 10"></polyline>
-                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                </svg>
-                استعلام جديد
-            </button>
+        <div class="col-md-12 text-center">
+            <a class="btn btn-primary mb-3" href="/">
+                رجوع للرئيسية
+            </a>
         </div>
-    </main>
+    </div>
+</div>
 
-    <!-- ===== Footer ===== -->
-    <footer class="footer">
-        <div class="footer-inner">
-            <div class="footer-top">
-                <div class="footer-brand">
-                    <img src="الشعارات/Seha.png" alt="منصة صحة">
-                    <div class="footer-logo-text">منصة صحة</div>
-                    <p>
-                        منصة صحة هي منصة رقمية صحية متكاملة تقدم مجموعة من الخدمات الصحية الإلكترونية للمواطنين والمقيمين في المملكة العربية السعودية، بهدف تسهيل الوصول إلى الخدمات الصحية وتحسين جودة الرعاية الصحية.
-                    </p>
+<!-- Footer -->
+<div class="footer-container container-fluid">
+    <div class="footer">
+        <div class="about section">
+            <img src="/assets/images/seha_logo.4dde29e5c4f38890ccf9787220bcc5be.svg" alt="Logo" style="filter: brightness(0) invert(1);">
+            <p class="about">
+                منصة صحة تخدم جميع المنشأت الطبية من خلال تقديم الخدمات الصحية إلكترونياً لجميع المنشأت الطبية وتسعى إلى توحيد وأتمتة الاجراءات والخدمات بما في دوره رفع جودة الاداء وخفض التكاليف.
+            </p>
+        </div>
+        <div class="links section" style="align-items: center;">
+            <h3 class="heading">القائمة الرئيسية</h3>
+            <ul class="links-wrapepr">
+                <li class="inquiry-li">
+                    <a class="nav-link" href="https://www.seha.sa/ui#/services">
+                        الخدمات
+                    </a>
+                </li>
+                <li class="inquiry-li">
+                    <a class="nav-link" href="https://www.seha.sa/ui#/inquiries">
+                        الاستعلامات
+                    </a>
+                </li>
+                <li class="inquiry-li">
+                    <a class="nav-link" href="https://www.seha.sa/ui#/faq">
+                        الأسئلة الشائعة
+                    </a>
+                </li>
+                <li class="inquiry-li" style="border-bottom: none;">
+                    <a class="nav-link" href="https://www.seha.sa/ui#/ContactUs">
+                        تواصل معنا
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="section d-none">
+            <h3 class="heading d-none">النشرة البريدية</h3>
+            <p class="about d-none">الاشتراك في الرسائل الإخبارية</p>
+            <form class="d-none">
+                <div class="input-wrapper">
+                    <input placeholder="البريد الالكتروني" type="email" class="form-control">
+                    <button class="button-small">إشترك</button>
                 </div>
-
-                <div class="footer-section">
-                    <h3>روابط سريعة</h3>
-                    <ul class="footer-links">
-                        <li><a href="/">الرئيسية</a></li>
-                        <li><a href="/services">الخدمات</a></li>
-                        <li><a href="/inquiry.html">الاستعلامات</a></li>
-                        <li><a href="/faq">الأسئلة الشائعة</a></li>
-                    </ul>
+            </form>
+        </div>
+        <div class="contact section">
+            <h3 class="heading">تواصل معنا</h3>
+            <div class="contact-wrapper">
+                <div class="values">
+                    <div class="details">
+                        <img alt="phone icon" src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='13.667'%20height='13.662'%20viewBox='0%200%2013.667%2013.662'%3e%3cpath%20id='phone'%20d='M15.455,17.037h-.089C5.04,16.443,3.574,7.731,3.369,5.072a1.576,1.576,0,0,1,1.45-1.7h2.9a1.051,1.051,0,0,1,.978.662L9.491,6a1.051,1.051,0,0,1-.231,1.135L8.14,8.267a4.923,4.923,0,0,0,3.983,3.993l1.14-1.13a1.051,1.051,0,0,1,1.14-.215l1.981.794a1.051,1.051,0,0,1,.647.977V15.46a1.576,1.576,0,0,1-1.576,1.576ZM4.946,4.426a.525.525,0,0,0-.525.525v.042c.242,3.111,1.792,10.467,11,10.992a.525.525,0,0,0,.557-.494V12.686L14,11.892l-1.508,1.5-.252-.032c-4.571-.573-5.191-5.144-5.191-5.191l-.032-.252L8.508,6.406,7.72,4.426Z'%20transform='translate(-3.364%20-3.375)'%20fill='%237eb7db'/%3e%3c/svg%3e">
+                        <a href="tel:920002005">920002005</a>
+                    </div>
+                    <div class="details">
+                        <img alt="email line" src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='13.667'%20height='10.25'%20viewBox='0%200%2013.667%2010.25'%3e%3cpath%20id='email-line'%20d='M14.812,6H2.854A.854.854,0,0,0,2,6.854V15.4a.854.854,0,0,0,.854.854H14.812a.854.854,0,0,0,.854-.854V6.854A.854.854,0,0,0,14.812,6Zm-.658,9.4H3.563L6.553,12.3l-.615-.594L2.854,14.9V7.5l5.309,5.283a.854.854,0,0,0,1.2,0l5.445-5.415v7.474L11.669,11.7l-.6.6ZM3.414,6.854H14.121L8.765,12.18Z'%20transform='translate(-2%20-6)'%20fill='%237eb7db'/%3e%3c/svg%3e">
+                        <a href="mailto:support@seha.sa">support@seha.sa</a>
+                    </div>
+                    <div class="details">
+                        <img alt="whatsapp" src="data:image/svg+xml,%3csvg%20width='14'%20height='15'%20viewBox='0%200%2014%2015'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20fill-rule='evenodd'%20clip-rule='evenodd'%20d='M11.9602%202.27071C10.6442%200.953543%208.89393%200.227791%207.02923%200.227051C3.18704%200.227051%200.0599782%203.35292%200.0584405%207.19512C0.057928%208.42329%200.378928%209.62217%200.988904%2010.6789L-7.62939e-06%2014.29L3.69531%2013.321C4.71343%2013.8761%205.85977%2014.1687%207.02644%2014.1692H7.0293C10.8711%2014.1692%2013.9984%2011.0429%2014%207.20068C14.0007%205.33869%2013.2763%203.58787%2011.9602%202.27071ZM7.0293%2012.9922H7.02693C5.98731%2012.9918%204.96761%2012.7126%204.07808%2012.1849L3.86649%2012.0594L1.67367%2012.6344L2.25899%2010.4971L2.12121%2010.278C1.54125%209.35579%201.23492%208.28992%201.23538%207.19556C1.23665%204.00207%203.83576%201.40399%207.0316%201.40399C8.5791%201.40458%2010.0338%202.00783%2011.1277%203.10261C12.2216%204.19739%2012.8237%205.65261%2012.8231%207.20023C12.8217%2010.3939%2010.2227%2012.9922%207.0293%2012.9922ZM10.2073%208.65437C10.0331%208.56722%209.17681%208.14597%209.01715%208.08787C8.8575%208.02976%208.7414%208.00072%208.62527%208.17504C8.50917%208.34934%208.17537%208.74154%208.07374%208.85773C7.97216%208.97395%207.87056%208.98849%207.69638%208.90132C7.52221%208.81417%206.961%208.63032%206.29571%208.03711C5.77795%207.57544%205.42836%207.0052%205.32677%206.8309C5.22517%206.65658%205.31597%206.56233%205.40316%206.47554C5.4815%206.39752%205.57732%206.27218%205.66442%206.17049C5.75149%206.06881%205.78052%205.99618%205.83856%205.87999C5.89663%205.76378%205.86761%205.66209%205.82406%205.57494C5.78052%205.48779%205.4322%204.63075%205.28704%204.28213C5.14567%203.9426%205.00207%203.98854%204.89515%203.98322C4.79367%203.97817%204.67744%203.97709%204.56134%203.97709C4.44522%203.97709%204.25653%204.02068%204.09687%204.19498C3.93722%204.3693%203.48729%204.79055%203.48729%205.64756C3.48729%206.50458%204.11139%207.33254%204.19848%207.44875C4.28556%207.56497%205.42666%209.32371%207.17387%2010.0779C7.58943%2010.2573%207.91386%2010.3644%208.16681%2010.4447C8.58407%2010.5772%208.96377%2010.5585%209.26389%2010.5137C9.59852%2010.4637%2010.2944%2010.0925%2010.4395%209.68573C10.5847%209.279%2010.5847%208.93038%2010.5411%208.85775C10.4976%208.78513%2010.3815%208.74154%2010.2073%208.65437Z'%20fill='white'/%3e%3c/svg%3e" style="width: 16px; height: 16px; opacity: 0.5;">
+                        <a href="https://wa.me/920002005" target="_blank" rel="noreferrer">920002005</a>
+                    </div>
+                    <div class="timings mt-3">
+                        <span style="font-size: 12px; color: rgb(240, 243, 248);">أوقات العمل: الأحد حتى الخميس 8 ص - 11م</span>
+                    </div>
+                    <div class="social">
+                        <button>
+                            <a href="https://www.youtube.com/channel/UCb9ZrS2YcriYqIPIHNp9wcQ">
+                                <img alt="youtube icon" src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%3e%3cg%20id='Group_4247'%20data-name='Group%204247'%20transform='translate(-326%20-6335)'%3e%3cpath%20id='youtube'%20d='M6.848,12.169V9.444l2.62,1.368-2.62,1.358Zm5.754-3.2a2.094,2.094,0,0,0-.386-.963,1.388,1.388,0,0,0-.972-.411c-1.357-.1-3.393-.1-3.393-.1h0s-2.036,0-3.393.1a1.388,1.388,0,0,0-.972.411,2.1,2.1,0,0,0-.386.963,14.673,14.673,0,0,0-.1,1.57v.736a14.681,14.681,0,0,0,.1,1.57,2.094,2.094,0,0,0,.386.963,1.641,1.641,0,0,0,1.07.414c.776.074,3.3.1,3.3.1s2.038,0,3.4-.1a1.387,1.387,0,0,0,.972-.411,2.1,2.1,0,0,0,.386-.963,14.681,14.681,0,0,0,.1-1.57v-.736a14.665,14.665,0,0,0-.1-1.57Z'%20transform='translate(327%206333.5)'%20fill='%23f0f3f8'%20fill-rule='evenodd'/%3e%3cg%20id='Path_8137'%20data-name='Path%208137'%20transform='translate(326%206335)'%20fill='none'%20opacity='0'%3e%3cpath%20d='M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z'%20stroke='none'/%3e%3cpath%20d='M%209.000004768371582%200.4999980926513672%20C%204.313084602355957%200.4999980926513672%200.4999942779541016%204.31309700012207%200.4999942779541016%209.00003719329834%20C%200.4999942779541016%2013.68697738647461%204.313084602355957%2017.50007629394531%209.000004768371582%2017.50007629394531%20C%2013.68692493438721%2017.50007629394531%2017.50000381469727%2013.68697738647461%2017.50000381469727%209.00003719329834%20C%2017.50000381469727%204.31309700012207%2013.68692493438721%200.4999980926513672%209.000004768371582%200.4999980926513672%20M%209.000004768371582%20-1.9073486328125e-06%20C%2013.97056484222412%20-1.9073486328125e-06%2018.00000381469727%204.029457092285156%2018.00000381469727%209.00003719329834%20C%2018.00000381469727%2013.97061729431152%2013.97056484222412%2018.00007629394531%209.000004768371582%2018.00007629394531%20C%204.029444694519043%2018.00007629394531%20-5.7220458984375e-06%2013.97061729431152%20-5.7220458984375e-06%209.00003719329834%20C%20-5.7220458984375e-06%204.029457092285156%204.029444694519043%20-1.9073486328125e-06%209.000004768371582%20-1.9073486328125e-06%20Z'%20stroke='none'%20fill='%23f0f3f8'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e">
+                            </a>
+                        </button>
+                        <button>
+                            <a href="https://twitter.com/seha_services">
+                                <svg width="14" height="14" viewBox="0 0 1200 1227" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill="#ffffff" d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z"/>
+                                </svg>
+                            </a>
+                        </button>
+                    </div>
                 </div>
-
-                <div class="footer-section">
-                    <h3>تواصل معنا</h3>
-                    <ul class="footer-contact-info">
-                        <li>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                            </svg>
-                            <a href="tel:920002005" dir="ltr">920002005</a>
-                        </li>
-                        <li>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
-                            <a href="mailto:support@seha.sa">support@seha.sa</a>
-                        </li>
-                        <li>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            <span>الأحد حتى الخميس 8 ص - 11م</span>
-                        </li>
-                    </ul>
+                <div class="contact">
+                    <img alt="lean logo" src="/assets/images/lean-logo.png">
+                    <div class="spacer"></div>
+                    <img alt="moh logo" src="/assets/images/moh-logo.png">
                 </div>
             </div>
-
-            <div class="footer-bottom">
-                <div class="footer-copyright">منصة صحة معتمدة من قبل وزارة الصحة © 2026</div>
-                <div class="footer-logos">
-                    <img src="الشعارات/Saudi_Ministry_of_Health.JPG" alt="وزارة الصحة">
-                    <img src="الشعارات/dfhZfyJM_400x400 (1).jpg" alt="LEAN">
-                </div>
+            <div class="footer-note-wrapper">
+                <p>منصة صحة معتمدة من قبل وزارة الصحة © 2026 </p>
+                <ul>
+                    <li><a>سياسة الخصوصية وشروط الإستخدام</a></li>
+                    <li><a class="" href="https://www.seha.sa/Content/LandingPages/UserManual.pdf">دليل الاستخدام</a></li>
+                </ul>
             </div>
         </div>
-    </footer>
+    </div>
+</div>
 
-    <!-- ===== JavaScript ===== -->
-    <script>
-        (function () {
-            'use strict';
+<script>
+    // Menu toggle
+    function toggleMenu() {
+        const nav = document.getElementById('responsive-navbar-nav');
+        if (nav.style.display === 'none' || nav.style.display === '') {
+            nav.style.display = 'block';
+        } else {
+            nav.style.display = 'none';
+        }
+    }
 
-            // DOM Elements
-            const form = document.getElementById('inquiryForm');
-            const formCard = document.getElementById('formCard');
-            const resultsCard = document.getElementById('resultsCard');
-            const errorAlert = document.getElementById('errorAlert');
-            const errorText = document.getElementById('errorText');
-            const spinnerOverlay = document.getElementById('spinnerOverlay');
-            const btnSubmit = document.getElementById('btnSubmit');
-            const btnReset = document.getElementById('btnReset');
-            const serviceCodeInput = document.getElementById('serviceCode');
-            const nationalIdInput = document.getElementById('nationalId');
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const navLinks = document.getElementById('navLinks');
+    // Hide error when typing
+    document.addEventListener('DOMContentLoaded', function() {
+        const serviceCodeInput = document.getElementById('service_code');
+        const errorMessage = document.getElementById('error-message');
 
-            // Result elements
-            const resName = document.getElementById('resName');
-            const resIssueDate = document.getElementById('resIssueDate');
-            const resDateFrom = document.getElementById('resDateFrom');
-            const resDateTo = document.getElementById('resDateTo');
-            const resDayCount = document.getElementById('resDayCount');
-            const resDoctorName = document.getElementById('resDoctorName');
-            const resDoctorSpecialty = document.getElementById('resDoctorSpecialty');
-
-            // Mobile menu toggle
-            mobileMenuBtn.addEventListener('click', function () {
-                navLinks.classList.toggle('open');
+        if (serviceCodeInput) {
+            serviceCodeInput.addEventListener('keydown', function() {
+                errorMessage.style.display = 'none';
             });
+        }
 
-            // Close mobile menu on link click
-            navLinks.querySelectorAll('a').forEach(function (link) {
-                link.addEventListener('click', function () {
-                    navLinks.classList.remove('open');
+        // Form submit
+        const form = document.getElementById('inquiry-form');
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const serviceCode = document.getElementById('service_code').value.trim();
+            const nationalId = document.getElementById('national_id').value.trim();
+
+            if (!serviceCode || !nationalId) {
+                errorMessage.textContent = 'يرجى إدخال رمز الخدمة ورقم الهوية.';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            errorMessage.style.display = 'none';
+            document.getElementById('spinner').classList.add('active');
+            document.getElementById('submit-btn').style.display = 'none';
+
+            try {
+                const response = await fetch('/api/inquiry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service_code: serviceCode,
+                        national_id: nationalId
+                    })
                 });
-            });
 
-            // Hide error when user types in service_code
-            serviceCodeInput.addEventListener('input', function () {
-                errorAlert.classList.remove('show');
-            });
+                const data = await response.json();
 
-            // Allow only digits in national ID
-            nationalIdInput.addEventListener('input', function () {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
-
-            // Show / Hide helpers
-            function showSpinner() {
-                spinnerOverlay.classList.add('show');
-            }
-
-            function hideSpinner() {
-                spinnerOverlay.classList.remove('show');
-            }
-
-            function showError(msg) {
-                errorText.textContent = msg || 'حدث خطأ أثناء الاستعلام. يرجى التأكد من البيانات والمحاولة مرة أخرى.';
-                errorAlert.classList.add('show');
-            }
-
-            function hideError() {
-                errorAlert.classList.remove('show');
-            }
-
-            function showResults(data) {
-                resName.textContent = data.name || '—';
-                resIssueDate.textContent = data.issue_date || '—';
-                resDateFrom.textContent = data.date_from || '—';
-                resDateTo.textContent = data.date_to || '—';
-                resDayCount.textContent = data.day_count || '—';
-                resDoctorName.textContent = data.doctor_name || '—';
-                resDoctorSpecialty.textContent = data.doctor_specialty || '—';
-
-                formCard.style.display = 'none';
-                resultsCard.classList.add('show');
-            }
-
-            function resetForm() {
-                form.reset();
-                formCard.style.display = 'block';
-                resultsCard.classList.remove('show');
-                hideError();
-                serviceCodeInput.disabled = false;
-                nationalIdInput.disabled = false;
-                btnSubmit.style.display = 'flex';
-            }
-
-            // Form submission
-            form.addEventListener('submit', async function (e) {
-                e.preventDefault();
-
-                hideError();
-
-                const serviceCode = serviceCodeInput.value.trim();
-                const nationalId = nationalIdInput.value.trim();
-
-                // Validation
-                if (!serviceCode) {
-                    showError('يرجى إدخال رمز الخدمة.');
-                    serviceCodeInput.focus();
-                    return;
+                if (data.success) {
+                    document.getElementById('res-name').textContent = data.data.name || '';
+                    document.getElementById('res-issue-date').textContent = data.data.issue_date || '';
+                    document.getElementById('res-date-from').textContent = data.data.date_from || '';
+                    document.getElementById('res-date-to').textContent = data.data.date_to || '';
+                    document.getElementById('res-day-count').textContent = data.data.day_count || '';
+                    document.getElementById('res-doctor-name').textContent = data.data.doctor_name || '';
+                    document.getElementById('res-doctor-specialty').textContent = data.data.doctor_specialty || '';
+                    document.getElementById('results-section').style.display = 'flex';
+                    document.getElementById('submit-btn').style.display = 'none';
+                    document.getElementById('service_code').disabled = true;
+                    document.getElementById('national_id').disabled = true;
+                } else {
+                    errorMessage.textContent = data.message || 'خطأ في الاستعلام';
+                    errorMessage.style.display = 'block';
+                    document.getElementById('submit-btn').style.display = 'inline-block';
                 }
+            } catch (err) {
+                console.error('Error:', err);
+                errorMessage.textContent = 'حدث خطأ أثناء الاتصال بالنظام، يرجى المحاولة لاحقًا.';
+                errorMessage.style.display = 'block';
+                document.getElementById('submit-btn').style.display = 'inline-block';
+            } finally {
+                document.getElementById('spinner').classList.remove('active');
+            }
+        });
+    });
 
-                if (!nationalId) {
-                    showError('يرجى إدخال رقم الهوية أو الإقامة.');
-                    nationalIdInput.focus();
-                    return;
-                }
+    function resetForm() {
+        document.getElementById('service_code').value = '';
+        document.getElementById('service_code').disabled = false;
+        document.getElementById('national_id').value = '';
+        document.getElementById('national_id').disabled = false;
+        document.getElementById('results-section').style.display = 'none';
+        document.getElementById('error-message').style.display = 'none';
+        document.getElementById('submit-btn').style.display = 'inline-block';
+    }
+</script>
 
-                if (!/^\d{10}$/.test(nationalId)) {
-                    showError('رقم الهوية / الإقامة يجب أن يتكون من 10 أرقام.');
-                    nationalIdInput.focus();
-                    return;
-                }
-
-                // Submit
-                showSpinner();
-                btnSubmit.disabled = true;
-
-                try {
-                    const response = await fetch('/api/inquiry', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            service_code: serviceCode,
-                            national_id: nationalId
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success !== false) {
-                        showResults(data);
-                    } else {
-                        showError(data.message || data.error || 'لم يتم العثور على بيانات. يرجى التحقق من رمز الخدمة ورقم الهوية.');
-                    }
-                } catch (err) {
-                    console.error('Inquiry error:', err);
-                    showError('تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.');
-                } finally {
-                    hideSpinner();
-                    btnSubmit.disabled = false;
-                }
-            });
-
-            // Reset button
-            btnReset.addEventListener('click', resetForm);
-
-        })();
-    </script>
 </body>
 </html>

@@ -24,3 +24,25 @@ Stage Summary:
 - تم نشر 4 ميزات جديدة على https://taqreer-vercel.vercel.app
 - لوحة الاستعلامات: https://taqreer-vercel.vercel.app/inquiry.html
 - ملاحظة: تخزين الاستعلامات يعتمد على /tmp (غير مستمر على Vercel بدون DB)
+
+---
+Task ID: 2
+Agent: Main
+Task: إعادة تصميم صفحة الاستعلامات لتطابق المستودع المرجعي almoqeesehh-main
+
+Work Log:
+- قرأ صفحة الاستعلامات المرجعية (almoqeesehh-main/src/app/inquiry/page.tsx)
+- استخرج أنماط CSS المطلوبة من mo.css (header, nav, inquiries-container, footer, spinner, results)
+- نسخ الأصول المطلوبة (seha logo SVG, lean-logo.png, moh-logo.png) إلى public/assets/images/
+- أنشأ /public/assets/css/inquiry.css بجميع الأنماط المستخرجة مع دعم Responsive
+- أعد كتابة /public/inquiry.html بالكامل ليتطابق 100% مع التصميم المرجعي
+  - الهيدر: شريط تنقل صحتي مع القائمة المتجاوبة
+  - المحتوى: عنوان "الإجازات المرضية" مع خلفية SVG زخرفية
+  - النموذج: حقول رمز الخدمة ورقم الهوية
+  - النتائج: عرض بيانات الإجازة بتنسيق results-inquiery
+  - الفوتر: الأزرق مع 3 أقسام (عن المنصة، القائمة، تواصل معنا) + شعارات MOH و Lean
+
+Stage Summary:
+- صفحة الاستعلامات الآن مطابقة بصرياً لتصميم منصة صحة الأصلي
+- الملفات المعدلة: inquiry.html (إعادة كتابة كاملة)، inquiry.css (جديد)
+- الأصول المضافة: seha_logo.svg, lean-logo.png, moh-logo.png

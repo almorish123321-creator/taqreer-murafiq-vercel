@@ -1,0 +1,1025 @@
+     1→<!DOCTYPE html>
+     2→<html lang="ar" dir="rtl">
+     3→<head>
+     4→    <meta charset="UTF-8">
+     5→    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     6→    <title>الاستعلام عن الإجازات المرضية - منصة صحة</title>
+     7→    <link rel="preconnect" href="https://fonts.googleapis.com">
+     8→    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+     9→    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    10→    <style>
+    11→        /* ===== Reset & Base ===== */
+    12→        *, *::before, *::after {
+    13→            margin: 0;
+    14→            padding: 0;
+    15→            box-sizing: border-box;
+    16→        }
+    17→
+    18→        body {
+    19→            font-family: 'Noto Sans Arabic', 'Tajawal', sans-serif;
+    20→            background-color: #f5f7fa;
+    21→            color: #333;
+    22→            direction: rtl;
+    23→            text-align: right;
+    24→            min-height: 100vh;
+    25→            display: flex;
+    26→            flex-direction: column;
+    27→            line-height: 1.7;
+    28→        }
+    29→
+    30→        a {
+    31→            text-decoration: none;
+    32→            color: inherit;
+    33→        }
+    34→
+    35→        /* ===== Header / Nav ===== */
+    36→        .header {
+    37→            background: #fff;
+    38→            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    39→            position: sticky;
+    40→            top: 0;
+    41→            z-index: 100;
+    42→        }
+    43→
+    44→        .header-inner {
+    45→            max-width: 1200px;
+    46→            margin: 0 auto;
+    47→            padding: 0 24px;
+    48→            display: flex;
+    49→            align-items: center;
+    50→            justify-content: space-between;
+    51→            height: 72px;
+    52→        }
+    53→
+    54→        .logo-link {
+    55→            display: flex;
+    56→            align-items: center;
+    57→            gap: 10px;
+    58→            flex-shrink: 0;
+    59→        }
+    60→
+    61→        .logo-link img {
+    62→            height: 48px;
+    63→            width: auto;
+    64→        }
+    65→
+    66→        .logo-link .logo-text {
+    67→            font-size: 22px;
+    68→            font-weight: 700;
+    69→            color: #306db5;
+    70→        }
+    71→
+    72→        .nav-links {
+    73→            display: flex;
+    74→            align-items: center;
+    75→            gap: 8px;
+    76→            list-style: none;
+    77→        }
+    78→
+    79→        .nav-links a {
+    80→            padding: 8px 16px;
+    81→            border-radius: 8px;
+    82→            font-size: 14.5px;
+    83→            font-weight: 500;
+    84→            color: #555;
+    85→            transition: all 0.2s ease;
+    86→        }
+    87→
+    88→        .nav-links a:hover {
+    89→            color: #306db5;
+    90→            background: rgba(48, 109, 181, 0.06);
+    91→        }
+    92→
+    93→        .nav-links a.active {
+    94→            color: #306db5;
+    95→            background: rgba(48, 109, 181, 0.1);
+    96→            font-weight: 600;
+    97→        }
+    98→
+    99→        .header-actions {
+   100→            display: flex;
+   101→            align-items: center;
+   102→            gap: 12px;
+   103→            flex-shrink: 0;
+   104→        }
+   105→
+   106→        .btn-login {
+   107→            padding: 8px 20px;
+   108→            border: 2px solid #306db5;
+   109→            border-radius: 8px;
+   110→            background: transparent;
+   111→            color: #306db5;
+   112→            font-family: inherit;
+   113→            font-size: 14px;
+   114→            font-weight: 600;
+   115→            cursor: pointer;
+   116→            transition: all 0.2s ease;
+   117→        }
+   118→
+   119→        .btn-login:hover {
+   120→            background: #306db5;
+   121→            color: #fff;
+   122→        }
+   123→
+   124→        .btn-create-account {
+   125→            padding: 8px 20px;
+   126→            border: none;
+   127→            border-radius: 8px;
+   128→            background: #306db5;
+   129→            color: #fff;
+   130→            font-family: inherit;
+   131→            font-size: 14px;
+   132→            font-weight: 600;
+   133→            cursor: pointer;
+   134→            transition: all 0.2s ease;
+   135→        }
+   136→
+   137→        .btn-create-account:hover {
+   138→            background: #285a9a;
+   139→        }
+   140→
+   141→        /* Mobile menu */
+   142→        .mobile-menu-btn {
+   143→            display: none;
+   144→            background: none;
+   145→            border: none;
+   146→            cursor: pointer;
+   147→            padding: 8px;
+   148→        }
+   149→
+   150→        .mobile-menu-btn svg {
+   151→            width: 28px;
+   152→            height: 28px;
+   153→            stroke: #333;
+   154→        }
+   155→
+   156→        /* ===== Main Content ===== */
+   157→        .main-content {
+   158→            flex: 1;
+   159→            max-width: 900px;
+   160→            width: 100%;
+   161→            margin: 0 auto;
+   162→            padding: 40px 24px 60px;
+   163→        }
+   164→
+   165→        .page-title {
+   166→            font-size: 28px;
+   167→            font-weight: 700;
+   168→            color: #306db5;
+   169→            margin-bottom: 12px;
+   170→            text-align: center;
+   171→        }
+   172→
+   173→        .page-subtitle {
+   174→            font-size: 15px;
+   175→            color: #666;
+   176→            text-align: center;
+   177→            line-height: 1.9;
+   178→            margin-bottom: 40px;
+   179→            max-width: 700px;
+   180→            margin-left: auto;
+   181→            margin-right: auto;
+   182→        }
+   183→
+   184→        /* ===== Form Card ===== */
+   185→        .form-card {
+   186→            background: #fff;
+   187→            border-radius: 16px;
+   188→            padding: 36px;
+   189→            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+   190→            margin-bottom: 24px;
+   191→        }
+   192→
+   193→        .form-group {
+   194→            margin-bottom: 20px;
+   195→        }
+   196→
+   197→        .form-group:last-of-type {
+   198→            margin-bottom: 24px;
+   199→        }
+   200→
+   201→        .form-label {
+   202→            display: block;
+   203→            font-size: 14.5px;
+   204→            font-weight: 600;
+   205→            color: #333;
+   206→            margin-bottom: 8px;
+   207→        }
+   208→
+   209→        .form-input {
+   210→            width: 100%;
+   211→            padding: 12px 16px;
+   212→            border: 1px solid #ddd;
+   213→            border-radius: 8px;
+   214→            font-family: inherit;
+   215→            font-size: 15px;
+   216→            color: #333;
+   217→            direction: rtl;
+   218→            background: #fafafa;
+   219→            transition: all 0.2s ease;
+   220→            outline: none;
+   221→        }
+   222→
+   223→        .form-input::placeholder {
+   224→            color: #aaa;
+   225→        }
+   226→
+   227→        .form-input:focus {
+   228→            border-color: #306db5;
+   229→            background: #fff;
+   230→            box-shadow: 0 0 0 3px rgba(48, 109, 181, 0.1);
+   231→        }
+   232→
+   233→        .form-input:disabled {
+   234→            background: #f0f0f0;
+   235→            color: #999;
+   236→            cursor: not-allowed;
+   237→        }
+   238→
+   239→        .btn-submit {
+   240→            width: 100%;
+   241→            padding: 14px;
+   242→            background: #306db5;
+   243→            color: #fff;
+   244→            border: none;
+   245→            border-radius: 8px;
+   246→            font-family: inherit;
+   247→            font-size: 16px;
+   248→            font-weight: 600;
+   249→            cursor: pointer;
+   250→            transition: all 0.2s ease;
+   251→            display: flex;
+   252→            align-items: center;
+   253→            justify-content: center;
+   254→            gap: 8px;
+   255→        }
+   256→
+   257→        .btn-submit:hover {
+   258→            background: #285a9a;
+   259→            transform: translateY(-1px);
+   260→            box-shadow: 0 4px 12px rgba(48, 109, 181, 0.3);
+   261→        }
+   262→
+   263→        .btn-submit:active {
+   264→            transform: translateY(0);
+   265→        }
+   266→
+   267→        .btn-submit:disabled {
+   268→            background: #94b8d9;
+   269→            cursor: not-allowed;
+   270→            transform: none;
+   271→            box-shadow: none;
+   272→        }
+   273→
+   274→        /* ===== Error Message ===== */
+   275→        .error-alert {
+   276→            display: none;
+   277→            background: #fef2f2;
+   278→            border: 1px solid #fecaca;
+   279→            border-radius: 8px;
+   280→            padding: 14px 18px;
+   281→            margin-bottom: 20px;
+   282→            color: #b91c1c;
+   283→            font-size: 14.5px;
+   284→            line-height: 1.8;
+   285→            align-items: center;
+   286→            gap: 10px;
+   287→        }
+   288→
+   289→        .error-alert.show {
+   290→            display: flex;
+   291→        }
+   292→
+   293→        .error-alert svg {
+   294→            flex-shrink: 0;
+   295→            width: 20px;
+   296→            height: 20px;
+   297→        }
+   298→
+   299→        /* ===== Results Section ===== */
+   300→        .results-card {
+   301→            display: none;
+   302→            background: #fff;
+   303→            border-radius: 16px;
+   304→            padding: 36px;
+   305→            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+   306→            animation: fadeInUp 0.4s ease;
+   307→        }
+   308→
+   309→        .results-card.show {
+   310→            display: block;
+   311→        }
+   312→
+   313→        .results-title {
+   314→            font-size: 20px;
+   315→            font-weight: 700;
+   316→            color: #306db5;
+   317→            margin-bottom: 24px;
+   318→            padding-bottom: 14px;
+   319→            border-bottom: 2px solid #e8eef5;
+   320→            display: flex;
+   321→            align-items: center;
+   322→            gap: 10px;
+   323→        }
+   324→
+   325→        .results-title svg {
+   326→            width: 24px;
+   327→            height: 24px;
+   328→        }
+   329→
+   330→        .results-grid {
+   331→            display: grid;
+   332→            grid-template-columns: 1fr 1fr;
+   333→            gap: 20px;
+   334→            margin-bottom: 28px;
+   335→        }
+   336→
+   337→        .result-item {
+   338→            background: #f8fafc;
+   339→            border-radius: 10px;
+   340→            padding: 16px 18px;
+   341→            border: 1px solid #e8eef5;
+   342→        }
+   343→
+   344→        .result-item.full-width {
+   345→            grid-column: 1 / -1;
+   346→        }
+   347→
+   348→        .result-label {
+   349→            font-size: 13px;
+   350→            color: #888;
+   351→            font-weight: 500;
+   352→            margin-bottom: 4px;
+   353→        }
+   354→
+   355→        .result-value {
+   356→            font-size: 15.5px;
+   357→            color: #1a1a2e;
+   358→            font-weight: 600;
+   359→        }
+   360→
+   361→        .btn-reset {
+   362→            width: 100%;
+   363→            padding: 14px;
+   364→            background: transparent;
+   365→            color: #306db5;
+   366→            border: 2px solid #306db5;
+   367→            border-radius: 8px;
+   368→            font-family: inherit;
+   369→            font-size: 16px;
+   370→            font-weight: 600;
+   371→            cursor: pointer;
+   372→            transition: all 0.2s ease;
+   373→            display: flex;
+   374→            align-items: center;
+   375→            justify-content: center;
+   376→            gap: 8px;
+   377→        }
+   378→
+   379→        .btn-reset:hover {
+   380→            background: #306db5;
+   381→            color: #fff;
+   382→        }
+   383→
+   384→        /* ===== Spinner Overlay ===== */
+   385→        .spinner-overlay {
+   386→            display: none;
+   387→            position: fixed;
+   388→            top: 0;
+   389→            left: 0;
+   390→            right: 0;
+   391→            bottom: 0;
+   392→            background: rgba(255, 255, 255, 0.8);
+   393→            backdrop-filter: blur(2px);
+   394→            z-index: 1000;
+   395→            align-items: center;
+   396→            justify-content: center;
+   397→            flex-direction: column;
+   398→            gap: 16px;
+   399→        }
+   400→
+   401→        .spinner-overlay.show {
+   402→            display: flex;
+   403→        }
+   404→
+   405→        .spinner {
+   406→            width: 48px;
+   407→            height: 48px;
+   408→            border: 4px solid #e0e7ef;
+   409→            border-top-color: #306db5;
+   410→            border-radius: 50%;
+   411→            animation: spin 0.8s linear infinite;
+   412→        }
+   413→
+   414→        .spinner-text {
+   415→            font-size: 15px;
+   416→            color: #306db5;
+   417→            font-weight: 600;
+   418→        }
+   419→
+   420→        /* ===== Footer ===== */
+   421→        .footer {
+   422→            background: #1a1a2e;
+   423→            color: #fff;
+   424→            padding: 50px 24px 0;
+   425→            margin-top: auto;
+   426→        }
+   427→
+   428→        .footer-inner {
+   429→            max-width: 1200px;
+   430→            margin: 0 auto;
+   431→        }
+   432→
+   433→        .footer-top {
+   434→            display: grid;
+   435→            grid-template-columns: 2fr 1fr 1fr;
+   436→            gap: 40px;
+   437→            padding-bottom: 40px;
+   438→            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+   439→        }
+   440→
+   441→        .footer-brand img {
+   442→            height: 48px;
+   443→            margin-bottom: 16px;
+   444→            filter: brightness(0) invert(1);
+   445→        }
+   446→
+   447→        .footer-brand .footer-logo-text {
+   448→            font-size: 20px;
+   449→            font-weight: 700;
+   450→            color: #fff;
+   451→            margin-bottom: 12px;
+   452→        }
+   453→
+   454→        .footer-brand p {
+   455→            font-size: 14px;
+   456→            color: rgba(255, 255, 255, 0.7);
+   457→            line-height: 1.9;
+   458→        }
+   459→
+   460→        .footer-section h3 {
+   461→            font-size: 16px;
+   462→            font-weight: 700;
+   463→            color: #fff;
+   464→            margin-bottom: 16px;
+   465→        }
+   466→
+   467→        .footer-links {
+   468→            list-style: none;
+   469→            display: flex;
+   470→            flex-direction: column;
+   471→            gap: 10px;
+   472→        }
+   473→
+   474→        .footer-links a {
+   475→            font-size: 14px;
+   476→            color: rgba(255, 255, 255, 0.7);
+   477→            transition: color 0.2s ease;
+   478→        }
+   479→
+   480→        .footer-links a:hover {
+   481→            color: #fff;
+   482→        }
+   483→
+   484→        .footer-contact-info {
+   485→            list-style: none;
+   486→            display: flex;
+   487→            flex-direction: column;
+   488→            gap: 12px;
+   489→        }
+   490→
+   491→        .footer-contact-info li {
+   492→            display: flex;
+   493→            align-items: center;
+   494→            gap: 10px;
+   495→            font-size: 14px;
+   496→            color: rgba(255, 255, 255, 0.7);
+   497→        }
+   498→
+   499→        .footer-contact-info svg {
+   500→            width: 18px;
+   501→            height: 18px;
+   502→            flex-shrink: 0;
+   503→            stroke: #306db5;
+   504→        }
+   505→
+   506→        .footer-contact-info a {
+   507→            color: rgba(255, 255, 255, 0.7);
+   508→            transition: color 0.2s ease;
+   509→        }
+   510→
+   511→        .footer-contact-info a:hover {
+   512→            color: #fff;
+   513→        }
+   514→
+   515→        .footer-bottom {
+   516→            padding: 24px 0;
+   517→            display: flex;
+   518→            align-items: center;
+   519→            justify-content: space-between;
+   520→            flex-wrap: wrap;
+   521→            gap: 16px;
+   522→        }
+   523→
+   524→        .footer-copyright {
+   525→            font-size: 13px;
+   526→            color: rgba(255, 255, 255, 0.5);
+   527→        }
+   528→
+   529→        .footer-logos {
+   530→            display: flex;
+   531→            align-items: center;
+   532→            gap: 24px;
+   533→        }
+   534→
+   535→        .footer-logos img {
+   536→            height: 40px;
+   537→            width: auto;
+   538→            filter: brightness(0) invert(1);
+   539→            opacity: 0.7;
+   540→            transition: opacity 0.2s ease;
+   541→        }
+   542→
+   543→        .footer-logos img:hover {
+   544→            opacity: 1;
+   545→        }
+   546→
+   547→        /* ===== Animations ===== */
+   548→        @keyframes fadeInUp {
+   549→            from {
+   550→                opacity: 0;
+   551→                transform: translateY(16px);
+   552→            }
+   553→            to {
+   554→                opacity: 1;
+   555→                transform: translateY(0);
+   556→            }
+   557→        }
+   558→
+   559→        @keyframes spin {
+   560→            to {
+   561→                transform: rotate(360deg);
+   562→            }
+   563→        }
+   564→
+   565→        /* ===== Responsive ===== */
+   566→        @media (max-width: 768px) {
+   567→            .header-inner {
+   568→                height: 64px;
+   569→            }
+   570→
+   571→            .nav-links {
+   572→                display: none;
+   573→            }
+   574→
+   575→            .nav-links.open {
+   576→                display: flex;
+   577→                flex-direction: column;
+   578→                position: absolute;
+   579→                top: 64px;
+   580→                right: 0;
+   581→                left: 0;
+   582→                background: #fff;
+   583→                padding: 16px;
+   584→                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+   585→                gap: 4px;
+   586→                z-index: 99;
+   587→            }
+   588→
+   589→            .nav-links.open a {
+   590→                padding: 12px 16px;
+   591→                font-size: 15px;
+   592→            }
+   593→
+   594→            .mobile-menu-btn {
+   595→                display: block;
+   596→            }
+   597→
+   598→            .header-actions .btn-login,
+   599→            .header-actions .btn-create-account {
+   600→                padding: 6px 14px;
+   601→                font-size: 13px;
+   602→            }
+   603→
+   604→            .main-content {
+   605→                padding: 24px 16px 40px;
+   606→            }
+   607→
+   608→            .page-title {
+   609→                font-size: 22px;
+   610→            }
+   611→
+   612→            .page-subtitle {
+   613→                font-size: 14px;
+   614→                margin-bottom: 28px;
+   615→            }
+   616→
+   617→            .form-card {
+   618→                padding: 24px 20px;
+   619→            }
+   620→
+   621→            .results-card {
+   622→                padding: 24px 20px;
+   623→            }
+   624→
+   625→            .results-grid {
+   626→                grid-template-columns: 1fr;
+   627→                gap: 12px;
+   628→            }
+   629→
+   630→            .footer-top {
+   631→                grid-template-columns: 1fr;
+   632→                gap: 28px;
+   633→            }
+   634→
+   635→            .footer-bottom {
+   636→                flex-direction: column;
+   637→                align-items: center;
+   638→                text-align: center;
+   639→            }
+   640→
+   641→            .footer-logos img {
+   642→                height: 32px;
+   643→            }
+   644→        }
+   645→
+   646→        @media (max-width: 400px) {
+   647→            .header-actions .btn-login {
+   648→                display: none;
+   649→            }
+   650→
+   651→            .logo-link .logo-text {
+   652→                font-size: 18px;
+   653→            }
+   654→        }
+   655→    </style>
+   656→</head>
+   657→<body>
+   658→
+   659→    <!-- ===== Header ===== -->
+   660→    <header class="header">
+   661→        <div class="header-inner">
+   662→            <a href="/" class="logo-link">
+   663→                <img src="الشعارات/Seha.png" alt="منصة صحة">
+   664→                <span class="logo-text">صحة</span>
+   665→            </a>
+   666→
+   667→            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="القائمة">
+   668→                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   669→                    <line x1="3" y1="6" x2="21" y2="6"></line>
+   670→                    <line x1="3" y1="12" x2="21" y2="12"></line>
+   671→                    <line x1="3" y1="18" x2="21" y2="18"></line>
+   672→                </svg>
+   673→            </button>
+   674→
+   675→            <nav>
+   676→                <ul class="nav-links" id="navLinks">
+   677→                    <li><a href="/">الرئيسية</a></li>
+   678→                    <li><a href="/services">الخدمات</a></li>
+   679→                    <li><a href="/inquiry.html" class="active">الاستعلامات</a></li>
+   680→                    <li><a href="/faq">الأسئلة الشائعة</a></li>
+   681→                </ul>
+   682→            </nav>
+   683→
+   684→            <div class="header-actions">
+   685→                <button class="btn-login">تسجيل الدخول</button>
+   686→                <button class="btn-create-account">إنشاء حساب</button>
+   687→            </div>
+   688→        </div>
+   689→    </header>
+   690→
+   691→    <!-- ===== Spinner Overlay ===== -->
+   692→    <div class="spinner-overlay" id="spinnerOverlay">
+   693→        <div class="spinner"></div>
+   694→        <span class="spinner-text">جاري الاستعلام...</span>
+   695→    </div>
+   696→
+   697→    <!-- ===== Main Content ===== -->
+   698→    <main class="main-content">
+   699→        <h1 class="page-title">الإجازات المرضية</h1>
+   700→        <p class="page-subtitle">
+   701→            خدمة الاستعلام عن الإجازات المرضية تتيح لك الاستعلام عن حالة طلبك للإجازة ويمكنك طباعتها عن طريق تطبيق صحتي
+   702→        </p>
+   703→
+   704→        <!-- Form Card -->
+   705→        <div class="form-card" id="formCard">
+   706→            <div class="error-alert" id="errorAlert">
+   707→                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   708→                    <circle cx="12" cy="12" r="10"></circle>
+   709→                    <line x1="15" y1="9" x2="9" y2="15"></line>
+   710→                    <line x1="9" y1="9" x2="15" y2="15"></line>
+   711→                </svg>
+   712→                <span id="errorText">حدث خطأ أثناء الاستعلام. يرجى التأكد من البيانات والمحاولة مرة أخرى.</span>
+   713→            </div>
+   714→
+   715→            <form id="inquiryForm" novalidate>
+   716→                <div class="form-group">
+   717→                    <label class="form-label" for="serviceCode">رمز الخدمة</label>
+   718→                    <input
+   719→                        type="text"
+   720→                        id="serviceCode"
+   721→                        name="service_code"
+   722→                        class="form-input"
+   723→                        placeholder="رمز الخدمة"
+   724→                        maxlength="20"
+   725→                        autocomplete="off"
+   726→                        required
+   727→                    >
+   728→                </div>
+   729→
+   730→                <div class="form-group">
+   731→                    <label class="form-label" for="nationalId">رقم الهوية / الإقامة</label>
+   732→                    <input
+   733→                        type="text"
+   734→                        id="nationalId"
+   735→                        name="national_id"
+   736→                        class="form-input"
+   737→                        placeholder="رقم الهوية / الإقامة"
+   738→                        maxlength="10"
+   739→                        pattern="\\d{10}"
+   740→                        inputmode="numeric"
+   741→                        autocomplete="off"
+   742→                        required
+   743→                    >
+   744→                </div>
+   745→
+   746→                <button type="submit" class="btn-submit" id="btnSubmit">
+   747→                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   748→                        <circle cx="11" cy="11" r="8"></circle>
+   749→                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+   750→                    </svg>
+   751→                    استعلام
+   752→                </button>
+   753→            </form>
+   754→        </div>
+   755→
+   756→        <!-- Results Card -->
+   757→        <div class="results-card" id="resultsCard">
+   758→            <div class="results-title">
+   759→                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   760→                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+   761→                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+   762→                </svg>
+   763→                نتيجة الاستعلام
+   764→            </div>
+   765→
+   766→            <div class="results-grid">
+   767→                <div class="result-item">
+   768→                    <div class="result-label">الاسم</div>
+   769→                    <div class="result-value" id="resName">—</div>
+   770→                </div>
+   771→                <div class="result-item">
+   772→                    <div class="result-label">تاريخ إصدار تقرير الإجازة</div>
+   773→                    <div class="result-value" id="resIssueDate">—</div>
+   774→                </div>
+   775→                <div class="result-item">
+   776→                    <div class="result-label">تبدأ من</div>
+   777→                    <div class="result-value" id="resDateFrom">—</div>
+   778→                </div>
+   779→                <div class="result-item">
+   780→                    <div class="result-label">وحتى</div>
+   781→                    <div class="result-value" id="resDateTo">—</div>
+   782→                </div>
+   783→                <div class="result-item">
+   784→                    <div class="result-label">المدة بالأيام</div>
+   785→                    <div class="result-value" id="resDayCount">—</div>
+   786→                </div>
+   787→                <div class="result-item">
+   788→                    <div class="result-label">اسم الطبيب</div>
+   789→                    <div class="result-value" id="resDoctorName">—</div>
+   790→                </div>
+   791→                <div class="result-item full-width">
+   792→                    <div class="result-label">المسمى الوظيفي</div>
+   793→                    <div class="result-value" id="resDoctorSpecialty">—</div>
+   794→                </div>
+   795→            </div>
+   796→
+   797→            <button type="button" class="btn-reset" id="btnReset">
+   798→                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   799→                    <polyline points="1 4 1 10 7 10"></polyline>
+   800→                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+   801→                </svg>
+   802→                استعلام جديد
+   803→            </button>
+   804→        </div>
+   805→    </main>
+   806→
+   807→    <!-- ===== Footer ===== -->
+   808→    <footer class="footer">
+   809→        <div class="footer-inner">
+   810→            <div class="footer-top">
+   811→                <div class="footer-brand">
+   812→                    <img src="الشعارات/Seha.png" alt="منصة صحة">
+   813→                    <div class="footer-logo-text">منصة صحة</div>
+   814→                    <p>
+   815→                        منصة صحة هي منصة رقمية صحية متكاملة تقدم مجموعة من الخدمات الصحية الإلكترونية للمواطنين والمقيمين في المملكة العربية السعودية، بهدف تسهيل الوصول إلى الخدمات الصحية وتحسين جودة الرعاية الصحية.
+   816→                    </p>
+   817→                </div>
+   818→
+   819→                <div class="footer-section">
+   820→                    <h3>روابط سريعة</h3>
+   821→                    <ul class="footer-links">
+   822→                        <li><a href="/">الرئيسية</a></li>
+   823→                        <li><a href="/services">الخدمات</a></li>
+   824→                        <li><a href="/inquiry.html">الاستعلامات</a></li>
+   825→                        <li><a href="/faq">الأسئلة الشائعة</a></li>
+   826→                    </ul>
+   827→                </div>
+   828→
+   829→                <div class="footer-section">
+   830→                    <h3>تواصل معنا</h3>
+   831→                    <ul class="footer-contact-info">
+   832→                        <li>
+   833→                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   834→                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path>
+   835→                            </svg>
+   836→                            <a href="tel:920002005" dir="ltr">920002005</a>
+   837→                        </li>
+   838→                        <li>
+   839→                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   840→                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+   841→                                <polyline points="22,6 12,13 2,6"></polyline>
+   842→                            </svg>
+   843→                            <a href="mailto:support@seha.sa">support@seha.sa</a>
+   844→                        </li>
+   845→                        <li>
+   846→                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+   847→                                <circle cx="12" cy="12" r="10"></circle>
+   848→                                <polyline points="12 6 12 12 16 14"></polyline>
+   849→                            </svg>
+   850→                            <span>الأحد حتى الخميس 8 ص - 11م</span>
+   851→                        </li>
+   852→                    </ul>
+   853→                </div>
+   854→            </div>
+   855→
+   856→            <div class="footer-bottom">
+   857→                <div class="footer-copyright">منصة صحة معتمدة من قبل وزارة الصحة © 2026</div>
+   858→                <div class="footer-logos">
+   859→                    <img src="الشعارات/Saudi_Ministry_of_Health.JPG" alt="وزارة الصحة">
+   860→                    <img src="الشعارات/dfhZfyJM_400x400 (1).jpg" alt="LEAN">
+   861→                </div>
+   862→            </div>
+   863→        </div>
+   864→    </footer>
+   865→
+   866→    <!-- ===== JavaScript ===== -->
+   867→    <script>
+   868→        (function () {
+   869→            'use strict';
+   870→
+   871→            // DOM Elements
+   872→            const form = document.getElementById('inquiryForm');
+   873→            const formCard = document.getElementById('formCard');
+   874→            const resultsCard = document.getElementById('resultsCard');
+   875→            const errorAlert = document.getElementById('errorAlert');
+   876→            const errorText = document.getElementById('errorText');
+   877→            const spinnerOverlay = document.getElementById('spinnerOverlay');
+   878→            const btnSubmit = document.getElementById('btnSubmit');
+   879→            const btnReset = document.getElementById('btnReset');
+   880→            const serviceCodeInput = document.getElementById('serviceCode');
+   881→            const nationalIdInput = document.getElementById('nationalId');
+   882→            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+   883→            const navLinks = document.getElementById('navLinks');
+   884→
+   885→            // Result elements
+   886→            const resName = document.getElementById('resName');
+   887→            const resIssueDate = document.getElementById('resIssueDate');
+   888→            const resDateFrom = document.getElementById('resDateFrom');
+   889→            const resDateTo = document.getElementById('resDateTo');
+   890→            const resDayCount = document.getElementById('resDayCount');
+   891→            const resDoctorName = document.getElementById('resDoctorName');
+   892→            const resDoctorSpecialty = document.getElementById('resDoctorSpecialty');
+   893→
+   894→            // Mobile menu toggle
+   895→            mobileMenuBtn.addEventListener('click', function () {
+   896→                navLinks.classList.toggle('open');
+   897→            });
+   898→
+   899→            // Close mobile menu on link click
+   900→            navLinks.querySelectorAll('a').forEach(function (link) {
+   901→                link.addEventListener('click', function () {
+   902→                    navLinks.classList.remove('open');
+   903→                });
+   904→            });
+   905→
+   906→            // Hide error when user types in service_code
+   907→            serviceCodeInput.addEventListener('input', function () {
+   908→                errorAlert.classList.remove('show');
+   909→            });
+   910→
+   911→            // Allow only digits in national ID
+   912→            nationalIdInput.addEventListener('input', function () {
+   913→                this.value = this.value.replace(/[^0-9]/g, '');
+   914→            });
+   915→
+   916→            // Show / Hide helpers
+   917→            function showSpinner() {
+   918→                spinnerOverlay.classList.add('show');
+   919→            }
+   920→
+   921→            function hideSpinner() {
+   922→                spinnerOverlay.classList.remove('show');
+   923→            }
+   924→
+   925→            function showError(msg) {
+   926→                errorText.textContent = msg || 'حدث خطأ أثناء الاستعلام. يرجى التأكد من البيانات والمحاولة مرة أخرى.';
+   927→                errorAlert.classList.add('show');
+   928→            }
+   929→
+   930→            function hideError() {
+   931→                errorAlert.classList.remove('show');
+   932→            }
+   933→
+   934→            function showResults(data) {
+   935→                resName.textContent = data.name || '—';
+   936→                resIssueDate.textContent = data.issue_date || '—';
+   937→                resDateFrom.textContent = data.date_from || '—';
+   938→                resDateTo.textContent = data.date_to || '—';
+   939→                resDayCount.textContent = data.day_count || '—';
+   940→                resDoctorName.textContent = data.doctor_name || '—';
+   941→                resDoctorSpecialty.textContent = data.doctor_specialty || '—';
+   942→
+   943→                formCard.style.display = 'none';
+   944→                resultsCard.classList.add('show');
+   945→            }
+   946→
+   947→            function resetForm() {
+   948→                form.reset();
+   949→                formCard.style.display = 'block';
+   950→                resultsCard.classList.remove('show');
+   951→                hideError();
+   952→                serviceCodeInput.disabled = false;
+   953→                nationalIdInput.disabled = false;
+   954→                btnSubmit.style.display = 'flex';
+   955→            }
+   956→
+   957→            // Form submission
+   958→            form.addEventListener('submit', async function (e) {
+   959→                e.preventDefault();
+   960→
+   961→                hideError();
+   962→
+   963→                const serviceCode = serviceCodeInput.value.trim();
+   964→                const nationalId = nationalIdInput.value.trim();
+   965→
+   966→                // Validation
+   967→                if (!serviceCode) {
+   968→                    showError('يرجى إدخال رمز الخدمة.');
+   969→                    serviceCodeInput.focus();
+   970→                    return;
+   971→                }
+   972→
+   973→                if (!nationalId) {
+   974→                    showError('يرجى إدخال رقم الهوية أو الإقامة.');
+   975→                    nationalIdInput.focus();
+   976→                    return;
+   977→                }
+   978→
+   979→                if (!/^\d{10}$/.test(nationalId)) {
+   980→                    showError('رقم الهوية / الإقامة يجب أن يتكون من 10 أرقام.');
+   981→                    nationalIdInput.focus();
+   982→                    return;
+   983→                }
+   984→
+   985→                // Submit
+   986→                showSpinner();
+   987→                btnSubmit.disabled = true;
+   988→
+   989→                try {
+   990→                    const response = await fetch('/api/inquiry', {
+   991→                        method: 'POST',
+   992→                        headers: {
+   993→                            'Content-Type': 'application/json',
+   994→                            'Accept': 'application/json'
+   995→                        },
+   996→                        body: JSON.stringify({
+   997→                            service_code: serviceCode,
+   998→                            national_id: nationalId
+   999→                        })
+  1000→                    });
+  1001→
+  1002→                    const data = await response.json();
+  1003→
+  1004→                    if (response.ok && data.success !== false) {
+  1005→                        showResults(data);
+  1006→                    } else {
+  1007→                        showError(data.message || data.error || 'لم يتم العثور على بيانات. يرجى التحقق من رمز الخدمة ورقم الهوية.');
+  1008→                    }
+  1009→                } catch (err) {
+  1010→                    console.error('Inquiry error:', err);
+  1011→                    showError('تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.');
+  1012→                } finally {
+  1013→                    hideSpinner();
+  1014→                    btnSubmit.disabled = false;
+  1015→                }
+  1016→            });
+  1017→
+  1018→            // Reset button
+  1019→            btnReset.addEventListener('click', resetForm);
+  1020→
+  1021→        })();
+  1022→    </script>
+  1023→</body>
+  1024→</html>
+  1025→
