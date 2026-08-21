@@ -427,9 +427,75 @@ const app = {
 
     formatDateLabel(dateStr) {
         const d = new Date(dateStr);
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        return ` ${days[d.getDay()]} ,${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+        return d.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    },
+
+    getNationalityEn(arName) {
+        const map = {
+            'السعودية': 'Saudi Arabia',
+            'الإمارات': 'United Arab Emirates',
+            'البحرين': 'Bahrain',
+            'الكويت': 'Kuwait',
+            'عمان': 'Oman',
+            'قطر': 'Qatar',
+            'اليمن': 'Yemen',
+            'الأردن': 'Jordan',
+            'سوريا': 'Syria',
+            'لبنان': 'Lebanon',
+            'فلسطين': 'Palestine',
+            'العراق': 'Iraq',
+            'مصر': 'Egypt',
+            'السودان': 'Sudan',
+            'ليبيا': 'Libya',
+            'تونس': 'Tunisia',
+            'الجزائر': 'Algeria',
+            'المغرب': 'Morocco',
+            'موريتانيا': 'Mauritania',
+            'الصومال': 'Somalia',
+            'جيبوتي': 'Djibouti',
+            'جزر القمر': 'Comoros',
+            'الهند': 'India',
+            'باكستان': 'Pakistan',
+            'بنجلاديش': 'Bangladesh',
+            'أفغانستان': 'Afghanistan',
+            'إندونيسيا': 'Indonesia',
+            'ماليزيا': 'Malaysia',
+            'الفلبين': 'Philippines',
+            'سريلانكا': 'Sri Lanka',
+            'نيبال': 'Nepal',
+            'تركيا': 'Turkey',
+            'إيران': 'Iran',
+            'الصين': 'China',
+            'اليابان': 'Japan',
+            'كوريا الجنوبية': 'South Korea',
+            'روسيا': 'Russia',
+            'الولايات المتحدة': 'United States',
+            'بريطانيا': 'United Kingdom',
+            'فرنسا': 'France',
+            'ألمانيا': 'Germany',
+            'إيطاليا': 'Italy',
+            'إسبانيا': 'Spain',
+            'كندا': 'Canada',
+            'أستراليا': 'Australia',
+            'البرازيل': 'Brazil',
+            'الأرجنتين': 'Argentina',
+            'المكسيك': 'Mexico',
+            'جنوب أفريقيا': 'South Africa',
+            'نيجيريا': 'Nigeria',
+            'إثيوبيا': 'Ethiopia',
+            'كينيا': 'Kenya',
+            'أوغندا': 'Uganda',
+            'تشاد': 'Chad',
+            'النيجر': 'Niger',
+            'مالي': 'Mali',
+            'السنغال': 'Senegal'
+        };
+        return map[arName] || arName;
     },
 
     async submitForm() {
@@ -465,7 +531,7 @@ const app = {
         const pNameEn = document.getElementById('patient_name_en').value;
         const idNum = document.getElementById('national_id').value;
         const nationalityAr = document.getElementById('nationality').value;
-        const nationalityEn = nationalityAr === 'السعودية' ? 'Saudi Arabia' : nationalityAr;
+        const nationalityEn = this.getNationalityEn(nationalityAr);
         const employer = document.getElementById('employer').value;
 
         const docNameAr = document.getElementById('doctor_name_ar').value;
@@ -489,18 +555,16 @@ const app = {
         // 2. Populate PDF Template
         document.getElementById('pdf-leave-id').innerText = reportId;
         
-        const hijriAdm = this.getHijriDate(admission);
-        const hijriDis = this.getHijriDate(discharge);
         const gregoAdm = this.formatGregorian(admission);
         const gregoDis = this.formatGregorian(discharge);
         
         document.getElementById('pdf-duration-en').innerText = `${duration} day ( ${gregoAdm} to ${gregoDis} )`;
-        document.getElementById('pdf-duration-ar').innerText = `${duration} يوم ( ${hijriAdm} الى ${hijriDis} )`;
+        document.getElementById('pdf-duration-ar').innerText = `${duration} يوم ( ${gregoAdm} إلى ${gregoDis} )`;
 
-        document.getElementById('pdf-admission-g').innerText = gregoAdm;
-        document.getElementById('pdf-admission-h').innerText = hijriAdm;
-        document.getElementById('pdf-discharge-g').innerText = gregoDis;
-        document.getElementById('pdf-discharge-h').innerText = hijriDis;
+        document.getElementById('pdf-admission-en').innerText = gregoAdm;
+        document.getElementById('pdf-admission-ar').innerText = gregoAdm;
+        document.getElementById('pdf-discharge-en').innerText = gregoDis;
+        document.getElementById('pdf-discharge-ar').innerText = gregoDis;
         
         document.getElementById('pdf-issue-date').innerText = this.formatGregorian(issueDate);
         
@@ -508,8 +572,9 @@ const app = {
         document.getElementById('pdf-nationality-en').innerText = nationalityEn;
         document.getElementById('pdf-nationality-ar').innerText = nationalityAr;
         
-        document.getElementById('pdf-employer-en').innerText = employer;
-        document.getElementById('pdf-employer-ar').innerText = employer || "لا يوجد";
+        const emptyEmployer = !employer || ['','غير محدد','فارغ','-','None','none','null','NULL','Not Specified','N/A','n/a','undefined'].includes(employer.trim());
+        document.getElementById('pdf-employer-en').innerText = emptyEmployer ? ' ' : employer;
+        document.getElementById('pdf-employer-ar').innerText = emptyEmployer ? ' ' : employer;
         
         document.getElementById('pdf-doctor-en').innerText = docNameEn.toUpperCase();
         document.getElementById('pdf-doctor-ar').innerText = docNameAr;
@@ -572,23 +637,11 @@ const app = {
             document.getElementById('pdf-doc-label-ar').innerText = "اسم الممارس";
         }
 
-        // Generate QR Code Optional
+        // Generate QR Code
         document.getElementById('pdf-qrcode').innerHTML = "";
         const includeQR = document.getElementById('include_qr') ? document.getElementById('include_qr').checked : true;
-        
-        const verifyParams = new URLSearchParams({
-            id: reportId,
-            nid: idNum,
-            name: type === 'companion' ? escAr : pNameAr,
-            issue: issueDate,
-            start: admission,
-            end: discharge,
-            dur: duration,
-            doc: docNameAr,
-            pos: jobAr
-        });
         const inquiryBaseUrl = window.location.origin;
-        const verifyUrl = `${inquiryBaseUrl}/inquiry.html`;
+        const verifyUrl = `${inquiryBaseUrl}/inquiry`;
         
         if (includeQR) {
             new QRCode(document.getElementById('pdf-qrcode'), {
@@ -604,103 +657,9 @@ const app = {
         document.getElementById('pdf-time').innerText = this.formatAMPM(issueTime);
         document.getElementById('pdf-day-date').innerText = this.formatDateLabel(issueDate);
 
-        // 3. Build structured reportData for server-side PDF generation
-        const reportDataPayload = {
-            titleAr: type === 'companion' ? 'تقرير مرافق مريض' : 'تقرير إجازة مرضية',
-            titleEn: type === 'companion' ? 'Patient Companion Report' : 'Sick Leave Report',
-            leaveId: reportId,
-            durationEn: `${duration} day ( ${gregoAdm} to ${gregoDis} )`,
-            durationAr: `${duration} يوم ( ${hijriAdm} الى ${hijriDis} )`,
-            admissionG: gregoAdm,
-            admissionH: hijriAdm,
-            dischargeG: gregoDis,
-            dischargeH: hijriDis,
-            issueDate: this.formatGregorian(issueDate),
-            nameLabelEn: type === 'companion' ? 'Companion Name' : 'Name',
-            nameLabelAr: type === 'companion' ? 'اسم المرافق' : 'الاسم',
-            nameEn: type === 'companion' ? escEn.toUpperCase() : pNameEn.toUpperCase(),
-            nameAr: type === 'companion' ? escAr : pNameAr,
-            nationalId: idNum,
-            nationalityEn: nationalityEn,
-            nationalityAr: nationalityAr,
-            relationEn: type === 'companion' ? relEn : '',
-            relationAr: type === 'companion' ? relAr : '',
-            employerEn: employer,
-            employerAr: employer || 'لا يوجد',
-            docLabelEn: type === 'companion' ? 'Physician Name' : 'Practitioner Name',
-            docLabelAr: type === 'companion' ? 'اسم الطبيب المعالج' : 'اسم الممارس',
-            doctorEn: docNameEn.toUpperCase(),
-            doctorAr: docNameAr,
-            positionEn: jobEn,
-            positionAr: jobAr,
-            hospitalAr: hospAr,
-            hospitalEn: hospEn,
-            licenseNumber: isPrivate ? license : '',
-            time: this.formatAMPM(issueTime),
-            dayDate: this.formatDateLabel(issueDate)
-        };
-
         try {
             app.state.points -= 5;
             app.updateDashboardUI();
-
-
-            // Populate the hidden PDF template in index.html
-            document.getElementById('pdf-leave-id').innerText = reportDataPayload.leaveId;
-            document.getElementById('pdf-duration-en').innerText = reportDataPayload.durationEn;
-            document.getElementById('pdf-duration-ar').innerText = reportDataPayload.durationAr;
-            document.getElementById('pdf-admission-g').innerText = reportDataPayload.admissionG;
-            document.getElementById('pdf-admission-h').innerText = reportDataPayload.admissionH;
-            document.getElementById('pdf-discharge-g').innerText = reportDataPayload.dischargeG;
-            document.getElementById('pdf-discharge-h').innerText = reportDataPayload.dischargeH;
-            document.getElementById('pdf-issue-date').innerText = reportDataPayload.issueDate;
-            
-            document.getElementById('pdf-name-en').innerText = reportDataPayload.nameEn;
-            document.getElementById('pdf-name-ar').innerText = reportDataPayload.nameAr;
-            document.getElementById('pdf-national-id').innerText = reportDataPayload.nationalId;
-            document.getElementById('pdf-employer-en').innerText = reportDataPayload.employerEn;
-            document.getElementById('pdf-employer-ar').innerText = reportDataPayload.employerAr;
-            
-            document.getElementById('pdf-doctor-en').innerText = reportDataPayload.doctorEn;
-            document.getElementById('pdf-doctor-ar').innerText = reportDataPayload.doctorAr;
-            document.getElementById('pdf-position-en').innerText = reportDataPayload.positionEn;
-            document.getElementById('pdf-position-ar').innerText = reportDataPayload.positionAr;
-
-            if (reportDataPayload.relationEn) {
-                document.getElementById('pdf-relation-row').style.display = '';
-                document.getElementById('pdf-relation-en').innerText = reportDataPayload.relationEn;
-                document.getElementById('pdf-relation-ar').innerText = reportDataPayload.relationAr;
-            } else {
-                document.getElementById('pdf-relation-row').style.display = 'none';
-            }
-
-            document.getElementById('pdf-time').innerText = reportDataPayload.time;
-            document.getElementById('pdf-day-date').innerText = reportDataPayload.dayDate;
-            document.getElementById('pdf-hospital-ar').innerText = reportDataPayload.hospitalAr;
-            document.getElementById('pdf-hospital-en').innerText = reportDataPayload.hospitalEn;
-
-            if (reportDataPayload.licenseNumber) {
-                document.getElementById('pdf-license').style.display = '';
-                document.getElementById('pdf-license-val').innerText = reportDataPayload.licenseNumber;
-            } else {
-                document.getElementById('pdf-license').style.display = 'none';
-            }
-
-            // QR Code - generate locally with QRCode.js, link to inquiry page
-            document.getElementById('pdf-qrcode').innerHTML = '';
-            if (typeof QRCode !== 'undefined') {
-                const inquiryUrl = window.location.origin + '/inquiry.html';
-                new QRCode(document.getElementById('pdf-qrcode'), {
-                    text: inquiryUrl,
-                    width: 100,
-                    height: 100,
-                    colorDark: '#000000',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.L
-                });
-            } else {
-                document.getElementById('pdf-qrcode').innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=' + encodeURIComponent(window.location.origin + '/inquiry.html') + '" style="width:110px;height:110px;">';
-            }
 
             // Wait for QR and fonts to be ready
             await new Promise(r => setTimeout(r, 1000));
@@ -872,8 +831,8 @@ else document.body.removeAttribute('dir');
                     patient_name_en: pNameEn,
                     nationality_ar: nationalityAr,
                     nationality_en: nationalityEn,
-                    employer_ar: employer,
-                    employer_en: employer,
+                    employer_ar: emptyEmployer ? ' ' : employer,
+                    employer_en: emptyEmployer ? ' ' : employer,
                     doctor_name_ar: docNameAr,
                     doctor_name_en: docNameEn,
                     doctor_specialty_ar: jobAr,

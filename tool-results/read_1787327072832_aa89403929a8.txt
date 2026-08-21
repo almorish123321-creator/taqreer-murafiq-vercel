@@ -1,0 +1,616 @@
+   380→            reader.onload = (event) => {
+   381→                this.state.hospitalLogoUrl = event.target.result;
+   382→            };
+   383→            reader.readAsDataURL(file);
+   384→        }
+   385→    },
+   386→
+   387→    buyPackage(pkgName) {
+   388→        if(this.tg) {
+   389→            this.tg.openTelegramLink('https://t.me/zakmmm_1211');
+   390→        } else {
+   391→            window.open('https://t.me/zakmmm_1211', '_blank');
+   392→        }
+   393→    },
+   394→
+   395→    async loadPdfTemplate() {
+   396→        const res = await fetch('pdf-template.html');
+   397→        const html = await res.text();
+   398→        document.getElementById('pdf-container').innerHTML = html;
+   399→    },
+   400→
+   401→    getHijriDate(dateString) {
+   402→        if(!dateString) return "";
+   403→        const date = new Date(dateString);
+   404→        return new Intl.DateTimeFormat('en-GB-u-ca-islamic', {
+   405→            day: '2-digit',
+   406→            month: '2-digit',
+   407→            year: 'numeric'
+   408→        }).format(date).replace(/AH/g, '').trim().replace(/\//g, '-');
+   409→    },
+   410→
+   411→    formatGregorian(dateString) {
+   412→        if(!dateString) return "";
+   413→        const parts = dateString.split('-');
+   414→        if(parts.length===3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+   415→        return dateString;
+   416→    },
+   417→
+   418→    formatAMPM(timeStr) {
+   419→        if(!timeStr) return "";
+   420→        let [hours, minutes] = timeStr.split(':');
+   421→        hours = parseInt(hours);
+   422→        let ampm = hours >= 12 ? 'PM' : 'AM';
+   423→        hours = hours % 12;
+   424→        hours = hours ? hours : 12; 
+   425→        return `${hours}:${minutes} ${ampm}`;
+   426→    },
+   427→
+   428→    formatDateLabel(dateStr) {
+   429→        const d = new Date(dateStr);
+   430→        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+   431→        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+   432→        return ` ${days[d.getDay()]} ,${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+   433→    },
+   434→
+   435→    async submitForm() {
+   436→        // Final Validation
+   437→        if(this.state.points < 5 && this.state.subscriptionDays <= 0) {
+   438→            if(this.tg) this.tg.showAlert("رصيدك غير كافٍ. تحتاج إلى 5 نقاط على الأقل.");
+   439→            else alert("رصيدك غير كافٍ. تحتاج إلى 5 نقاط على الأقل.");
+   440→            return;
+   441→        }
+   442→
+   443→        // Show loading
+   444→        document.getElementById('loading-overlay').style.display = 'flex';
+   445→        
+   446→        try {
+   447→            await this.populatePdfAndGenerate();
+   448→        } catch(e) {
+   449→            console.error(e);
+   450→            alert("حدث خطأ أثناء إعداد التقرير: " + (e.message || e));
+   451→            document.getElementById('loading-overlay').style.display = 'none';
+   452→        }
+   453→    },
+   454→
+   455→    async populatePdfAndGenerate() {
+   456→        // 1. Gather Data
+   457→        const type = this.state.leaveType;
+   458→        const admission = document.getElementById('admission_date').value;
+   459→        const discharge = document.getElementById('discharge_date').value;
+   460→        const duration = document.getElementById('duration').value;
+   461→        const issueDate = document.getElementById('issue_date').value;
+   462→        const issueTime = document.getElementById('issue_time').value;
+   463→
+   464→        const pNameAr = document.getElementById('patient_name_ar').value;
+   465→        const pNameEn = document.getElementById('patient_name_en').value;
+   466→        const idNum = document.getElementById('national_id').value;
+   467→        const nationalityAr = document.getElementById('nationality').value;
+   468→        const nationalityEn = nationalityAr === 'السعودية' ? 'Saudi Arabia' : nationalityAr;
+   469→        const employer = document.getElementById('employer').value;
+   470→
+   471→        const docNameAr = document.getElementById('doctor_name_ar').value;
+   472→        const docNameEn = document.getElementById('doctor_name_en').value;
+   473→        const jobAr = document.getElementById('job_title_ar').value;
+   474→        const jobEn = document.getElementById('job_title_en').value;
+   475→        
+   476→        const hospAr = document.getElementById('hospital_ar').value;
+   477→        const hospEn = document.getElementById('hospital_en').value;
+   478→        const isPrivate = document.querySelector('input[name="hospital_type"]:checked').value === 'private';
+   479→        const license = document.getElementById('license_number').value;
+   480→
+   481→        const reportId = `GSL${Math.floor(Math.random() * 10000000000)}`;
+   482→
+   483→        // Gather escort/relation data early (before any conditional blocks)
+   484→        const escAr = document.getElementById('escort_name_ar') ? document.getElementById('escort_name_ar').value : '';
+   485→        const escEn = document.getElementById('escort_name_en') ? document.getElementById('escort_name_en').value : '';
+   486→        const relAr = document.getElementById('relation_ar') ? document.getElementById('relation_ar').value : '';
+   487→        const relEn = document.getElementById('relation_en') ? document.getElementById('relation_en').value : '';
+   488→
+   489→        // 2. Populate PDF Template
+   490→        document.getElementById('pdf-leave-id').innerText = reportId;
+   491→        
+   492→        const hijriAdm = this.getHijriDate(admission);
+   493→        const hijriDis = this.getHijriDate(discharge);
+   494→        const gregoAdm = this.formatGregorian(admission);
+   495→        const gregoDis = this.formatGregorian(discharge);
+   496→        
+   497→        document.getElementById('pdf-duration-en').innerText = `${duration} day ( ${gregoAdm} to ${gregoDis} )`;
+   498→        document.getElementById('pdf-duration-ar').innerText = `${duration} يوم ( ${hijriAdm} الى ${hijriDis} )`;
+   499→
+   500→        document.getElementById('pdf-admission-g').innerText = gregoAdm;
+   501→        document.getElementById('pdf-admission-h').innerText = hijriAdm;
+   502→        document.getElementById('pdf-discharge-g').innerText = gregoDis;
+   503→        document.getElementById('pdf-discharge-h').innerText = hijriDis;
+   504→        
+   505→        document.getElementById('pdf-issue-date').innerText = this.formatGregorian(issueDate);
+   506→        
+   507→        document.getElementById('pdf-national-id').innerText = idNum;
+   508→        document.getElementById('pdf-nationality-en').innerText = nationalityEn;
+   509→        document.getElementById('pdf-nationality-ar').innerText = nationalityAr;
+   510→        
+   511→        document.getElementById('pdf-employer-en').innerText = employer;
+   512→        document.getElementById('pdf-employer-ar').innerText = employer || "لا يوجد";
+   513→        
+   514→        document.getElementById('pdf-doctor-en').innerText = docNameEn.toUpperCase();
+   515→        document.getElementById('pdf-doctor-ar').innerText = docNameAr;
+   516→        document.getElementById('pdf-position-en').innerText = jobEn;
+   517→        document.getElementById('pdf-position-ar').innerText = jobAr;
+   518→        
+   519→        document.getElementById('pdf-hospital-en').innerText = hospEn;
+   520→        document.getElementById('pdf-hospital-ar').innerText = hospAr;
+   521→        
+   522→        if (isPrivate && license) {
+   523→            document.getElementById('pdf-license').style.display = 'block';
+   524→            document.getElementById('pdf-license-val').innerText = license;
+   525→        } else {
+   526→            document.getElementById('pdf-license').style.display = 'none';
+   527→        }
+   528→        
+   529→        document.getElementById('pdf-hospital-logo').src = this.state.hospitalLogoUrl;
+   530→        
+   531→        if (this.state.mohLogoUrl) {
+   532→            const mohContainer = document.getElementById('pdf-moh-logo-container');
+   533→            const mohImg = document.getElementById('pdf-moh-logo');
+   534→            if (mohContainer && mohImg) {
+   535→                mohContainer.style.display = 'block';
+   536→                mohImg.src = this.state.mohLogoUrl;
+   537→            }
+   538→        } else {
+   539→            const mohContainer = document.getElementById('pdf-moh-logo-container');
+   540→            if (mohContainer) {
+   541→                mohContainer.style.display = 'none';
+   542→            }
+   543→        }
+   544→
+   545→        // Type specific adjustments
+   546→        if (type === 'companion') {
+   547→            if(document.getElementById('pdf-title-ar')) document.getElementById('pdf-title-ar').innerText = "تقرير مرافق مريض";
+   548→            if(document.getElementById('pdf-title-en')) document.getElementById('pdf-title-en').innerText = "Patient Companion Report";
+   549→            
+   550→            document.getElementById('pdf-name-label-en').innerText = "Companion Name";
+   551→            document.getElementById('pdf-name-label-ar').innerText = "اسم المرافق";
+   552→            document.getElementById('pdf-name-en').innerText = escEn.toUpperCase();
+   553→            document.getElementById('pdf-name-ar').innerText = escAr;
+   554→            
+   555→            document.getElementById('pdf-relation-row').style.display = 'flex';
+   556→            document.getElementById('pdf-relation-en').innerText = relEn;
+   557→            document.getElementById('pdf-relation-ar').innerText = relAr;
+   558→
+   559→            document.getElementById('pdf-doc-label-en').innerText = "Physician Name";
+   560→            document.getElementById('pdf-doc-label-ar').innerText = "اسم الطبيب المعالج";
+   561→        } else {
+   562→            if(document.getElementById('pdf-title-ar')) document.getElementById('pdf-title-ar').innerText = "تقرير إجازة مرضية";
+   563→            if(document.getElementById('pdf-title-en')) document.getElementById('pdf-title-en').innerText = "Sick Leave Report";
+   564→            
+   565→            document.getElementById('pdf-name-label-en').innerText = "Name";
+   566→            document.getElementById('pdf-name-label-ar').innerText = "الاسم";
+   567→            document.getElementById('pdf-name-en').innerText = pNameEn.toUpperCase();
+   568→            document.getElementById('pdf-name-ar').innerText = pNameAr;
+   569→            
+   570→            document.getElementById('pdf-relation-row').style.display = 'none';
+   571→            document.getElementById('pdf-doc-label-en').innerText = "Practitioner Name";
+   572→            document.getElementById('pdf-doc-label-ar').innerText = "اسم الممارس";
+   573→        }
+   574→
+   575→        // Generate QR Code Optional
+   576→        document.getElementById('pdf-qrcode').innerHTML = "";
+   577→        const includeQR = document.getElementById('include_qr') ? document.getElementById('include_qr').checked : true;
+   578→        
+   579→        const verifyParams = new URLSearchParams({
+   580→            id: reportId,
+   581→            nid: idNum,
+   582→            name: type === 'companion' ? escAr : pNameAr,
+   583→            issue: issueDate,
+   584→            start: admission,
+   585→            end: discharge,
+   586→            dur: duration,
+   587→            doc: docNameAr,
+   588→            pos: jobAr
+   589→        });
+   590→        const inquiryBaseUrl = window.location.origin;
+   591→        const verifyUrl = `${inquiryBaseUrl}/inquiry.html`;
+   592→        
+   593→        if (includeQR) {
+   594→            new QRCode(document.getElementById('pdf-qrcode'), {
+   595→                text: verifyUrl,
+   596→                width: 100,
+   597→                height: 100,
+   598→                colorDark : "#000000",
+   599→                colorLight : "#ffffff",
+   600→                correctLevel : QRCode.CorrectLevel.L
+   601→            });
+   602→        }
+   603→
+   604→        document.getElementById('pdf-time').innerText = this.formatAMPM(issueTime);
+   605→        document.getElementById('pdf-day-date').innerText = this.formatDateLabel(issueDate);
+   606→
+   607→        // 3. Build structured reportData for server-side PDF generation
+   608→        const reportDataPayload = {
+   609→            titleAr: type === 'companion' ? 'تقرير مرافق مريض' : 'تقرير إجازة مرضية',
+   610→            titleEn: type === 'companion' ? 'Patient Companion Report' : 'Sick Leave Report',
+   611→            leaveId: reportId,
+   612→            durationEn: `${duration} day ( ${gregoAdm} to ${gregoDis} )`,
+   613→            durationAr: `${duration} يوم ( ${hijriAdm} الى ${hijriDis} )`,
+   614→            admissionG: gregoAdm,
+   615→            admissionH: hijriAdm,
+   616→            dischargeG: gregoDis,
+   617→            dischargeH: hijriDis,
+   618→            issueDate: this.formatGregorian(issueDate),
+   619→            nameLabelEn: type === 'companion' ? 'Companion Name' : 'Name',
+   620→            nameLabelAr: type === 'companion' ? 'اسم المرافق' : 'الاسم',
+   621→            nameEn: type === 'companion' ? escEn.toUpperCase() : pNameEn.toUpperCase(),
+   622→            nameAr: type === 'companion' ? escAr : pNameAr,
+   623→            nationalId: idNum,
+   624→            nationalityEn: nationalityEn,
+   625→            nationalityAr: nationalityAr,
+   626→            relationEn: type === 'companion' ? relEn : '',
+   627→            relationAr: type === 'companion' ? relAr : '',
+   628→            employerEn: employer,
+   629→            employerAr: employer || 'لا يوجد',
+   630→            docLabelEn: type === 'companion' ? 'Physician Name' : 'Practitioner Name',
+   631→            docLabelAr: type === 'companion' ? 'اسم الطبيب المعالج' : 'اسم الممارس',
+   632→            doctorEn: docNameEn.toUpperCase(),
+   633→            doctorAr: docNameAr,
+   634→            positionEn: jobEn,
+   635→            positionAr: jobAr,
+   636→            hospitalAr: hospAr,
+   637→            hospitalEn: hospEn,
+   638→            licenseNumber: isPrivate ? license : '',
+   639→            time: this.formatAMPM(issueTime),
+   640→            dayDate: this.formatDateLabel(issueDate)
+   641→        };
+   642→
+   643→        try {
+   644→            app.state.points -= 5;
+   645→            app.updateDashboardUI();
+   646→
+   647→
+   648→            // Populate the hidden PDF template in index.html
+   649→            document.getElementById('pdf-leave-id').innerText = reportDataPayload.leaveId;
+   650→            document.getElementById('pdf-duration-en').innerText = reportDataPayload.durationEn;
+   651→            document.getElementById('pdf-duration-ar').innerText = reportDataPayload.durationAr;
+   652→            document.getElementById('pdf-admission-g').innerText = reportDataPayload.admissionG;
+   653→            document.getElementById('pdf-admission-h').innerText = reportDataPayload.admissionH;
+   654→            document.getElementById('pdf-discharge-g').innerText = reportDataPayload.dischargeG;
+   655→            document.getElementById('pdf-discharge-h').innerText = reportDataPayload.dischargeH;
+   656→            document.getElementById('pdf-issue-date').innerText = reportDataPayload.issueDate;
+   657→            
+   658→            document.getElementById('pdf-name-en').innerText = reportDataPayload.nameEn;
+   659→            document.getElementById('pdf-name-ar').innerText = reportDataPayload.nameAr;
+   660→            document.getElementById('pdf-national-id').innerText = reportDataPayload.nationalId;
+   661→            document.getElementById('pdf-employer-en').innerText = reportDataPayload.employerEn;
+   662→            document.getElementById('pdf-employer-ar').innerText = reportDataPayload.employerAr;
+   663→            
+   664→            document.getElementById('pdf-doctor-en').innerText = reportDataPayload.doctorEn;
+   665→            document.getElementById('pdf-doctor-ar').innerText = reportDataPayload.doctorAr;
+   666→            document.getElementById('pdf-position-en').innerText = reportDataPayload.positionEn;
+   667→            document.getElementById('pdf-position-ar').innerText = reportDataPayload.positionAr;
+   668→
+   669→            if (reportDataPayload.relationEn) {
+   670→                document.getElementById('pdf-relation-row').style.display = '';
+   671→                document.getElementById('pdf-relation-en').innerText = reportDataPayload.relationEn;
+   672→                document.getElementById('pdf-relation-ar').innerText = reportDataPayload.relationAr;
+   673→            } else {
+   674→                document.getElementById('pdf-relation-row').style.display = 'none';
+   675→            }
+   676→
+   677→            document.getElementById('pdf-time').innerText = reportDataPayload.time;
+   678→            document.getElementById('pdf-day-date').innerText = reportDataPayload.dayDate;
+   679→            document.getElementById('pdf-hospital-ar').innerText = reportDataPayload.hospitalAr;
+   680→            document.getElementById('pdf-hospital-en').innerText = reportDataPayload.hospitalEn;
+   681→
+   682→            if (reportDataPayload.licenseNumber) {
+   683→                document.getElementById('pdf-license').style.display = '';
+   684→                document.getElementById('pdf-license-val').innerText = reportDataPayload.licenseNumber;
+   685→            } else {
+   686→                document.getElementById('pdf-license').style.display = 'none';
+   687→            }
+   688→
+   689→            // QR Code - generate locally with QRCode.js, link to inquiry page
+   690→            document.getElementById('pdf-qrcode').innerHTML = '';
+   691→            if (typeof QRCode !== 'undefined') {
+   692→                const inquiryUrl = window.location.origin + '/inquiry.html';
+   693→                new QRCode(document.getElementById('pdf-qrcode'), {
+   694→                    text: inquiryUrl,
+   695→                    width: 100,
+   696→                    height: 100,
+   697→                    colorDark: '#000000',
+   698→                    colorLight: '#ffffff',
+   699→                    correctLevel: QRCode.CorrectLevel.L
+   700→                });
+   701→            } else {
+   702→                document.getElementById('pdf-qrcode').innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=' + encodeURIComponent(window.location.origin + '/inquiry.html') + '" style="width:110px;height:110px;">';
+   703→            }
+   704→
+   705→            // Wait for QR and fonts to be ready
+   706→            await new Promise(r => setTimeout(r, 1000));
+   707→
+   708→            // Ensure fonts are loaded before generating
+   709→await document.fonts.ready;
+   710→await new Promise(r => setTimeout(r, 800)); // allow QR and images to settle
+   711→
+   712→const pdfElement = document.getElementById('pdf-content');
+   713→// Ensure the element is completely visible before rendering
+   714→pdfElement.parentElement.style.opacity = '1';
+   715→pdfElement.parentElement.style.zIndex = '9999';
+   716→pdfElement.parentElement.style.position = 'absolute'; // Use absolute to prevent fixed viewport issues
+   717→pdfElement.parentElement.style.top = '0';
+   718→pdfElement.parentElement.style.left = '0';
+   719→pdfElement.parentElement.style.right = 'auto';
+   720→
+   721→// Very important for RTL pages: html2canvas calculates X incorrectly if the page is RTL.
+   722→const originalHtmlDir = document.documentElement.getAttribute('dir');
+   723→const originalBodyDir = document.body.getAttribute('dir');
+   724→document.documentElement.setAttribute('dir', 'ltr');
+   725→document.body.setAttribute('dir', 'ltr');
+   726→
+   727→// Prevent body overflow clipping
+   728→const originalOverflow = document.body.style.overflow;
+   729→const originalDocOverflow = document.documentElement.style.overflow;
+   730→document.body.style.overflow = 'visible';
+   731→document.documentElement.style.overflow = 'visible';
+   732→
+   733→// Scroll to top-left to ensure capture area is within viewport coordinates
+   734→window.scrollTo(0, 0);
+   735→
+   736→
+   737→            // Generate PNG using dom-to-image to preserve exact browser Arabic text rendering (RTL/CTL)
+   738→            // html2canvas is known to mangle Arabic cursive joining.
+   739→            let pdfBase64;
+   740→            const PDF_W = 842, PDF_H = 1150; // A3 proportions matching original PDFKit
+   741→            try {
+   742→                const scale = 2; // high quality
+   743→                const dataUrl = await domtoimage.toJpeg(pdfElement, {
+   744→                    quality: 0.98,
+   745→                    bgcolor: '#ffffff',
+   746→                    width: PDF_W * scale,
+   747→                    height: PDF_H * scale,
+   748→                    style: {
+   749→                        transform: 'scale(' + scale + ')',
+   750→                        transformOrigin: 'top left',
+   751→                        width: PDF_W + 'px',
+   752→                        height: PDF_H + 'px'
+   753→                    }
+   754→                });
+   755→
+   756→                // Create jsPDF and inject the perfectly rendered image
+   757→                const jsPDFClass = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+   758→                if (!jsPDFClass) throw new Error("jsPDF not loaded");
+   759→                const pdf = new jsPDFClass({ unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait', hotfixes: ["px_scaling"] });
+   760→                pdf.addImage(dataUrl, 'JPEG', 0, 0, PDF_W, PDF_H);
+   761→                pdfBase64 = pdf.output('datauristring');
+   762→            } catch (fallbackErr) {
+   763→                console.error("dom-to-image failed, trying html2pdf:", fallbackErr);
+   764→                const opt = {
+   765→                    margin: 0,
+   766→                    filename: 'sickLeaves.pdf',
+   767→                    image: { type: 'jpeg', quality: 1 },
+   768→                    html2canvas: { scale: 2, useCORS: true, letterRendering: false },
+   769→                    jsPDF: { unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait', hotfixes: ["px_scaling"] }
+   770→                };
+   771→                pdfBase64 = await html2pdf().from(pdfElement).set(opt).outputPdf('datauristring');
+   772→            }
+   773→
+   774→
+   775→// Hide it again
+   776→pdfElement.parentElement.style.opacity = '0.01';
+   777→pdfElement.parentElement.style.zIndex = '-9999';
+   778→pdfElement.parentElement.style.position = 'absolute';
+   779→pdfElement.parentElement.style.top = '-10000px';
+   780→pdfElement.parentElement.style.left = '-10000px';
+   781→
+   782→// Restore page states
+   783→document.body.style.overflow = originalOverflow;
+   784→document.documentElement.style.overflow = originalDocOverflow;
+   785→if(originalHtmlDir) document.documentElement.setAttribute('dir', originalHtmlDir);
+   786→else document.documentElement.removeAttribute('dir');
+   787→if(originalBodyDir) document.body.setAttribute('dir', originalBodyDir);
+   788→else document.body.removeAttribute('dir');
+   789→
+   790→    
+   791→
+   792→
+   793→            // ===== SAVE PDF TO STATE FOR DOWNLOAD LATER =====
+   794→            app.state.lastPdfBase64 = pdfBase64;
+   795→            app.state.lastReportId = reportId;
+   796→
+   797→            // ===== AUTO-DOWNLOAD PDF TO DEVICE =====
+   798→            try {
+   799→                const link = document.createElement('a');
+   800→                link.href = pdfBase64;
+   801→                link.download = `${reportId}.pdf`;
+   802→                document.body.appendChild(link);
+   803→                link.click();
+   804→                document.body.removeChild(link);
+   805→            } catch (dlErr) {
+   806→                console.warn('Auto-download failed:', dlErr);
+   807→            }
+   808→
+   809→            // Send generated PDF back to server to send via Telegram
+   810→            const sendResponse = await fetch('/api/send-generated-pdf', {
+   811→                method: 'POST',
+   812→                headers: { 'Content-Type': 'application/json' },
+   813→                body: JSON.stringify({
+   814→                    chatId: app.state.chatId,
+   815→                    pdfBase64: pdfBase64,
+   816→                    filename: 'sickLeaves.pdf',
+   817→                    reportId: reportId
+   818→                })
+   819→            });
+   820→            
+   821→            const sendResult = await sendResponse.json();
+   822→            if (!sendResult.success) {
+   823→                console.warn('Telegram send failed:', sendResult.error);
+   824→            }
+   825→
+   826→            // Also save report data
+   827→            await fetch(`/api/report/${app.state.chatId}`, {
+   828→                method: 'POST',
+   829→                headers: { 'Content-Type': 'application/json' },
+   830→                body: JSON.stringify({
+   831→                    report: {
+   832→                        id: reportId,
+   833→                        patientName: type === 'companion' ? escAr : pNameAr,
+   834→                        type: type,
+   835→                        issueDate: issueDate,
+   836→                        data: {
+   837→                            admission_date: admission,
+   838→                            discharge_date: discharge,
+   839→                            duration: duration,
+   840→                            issue_date: issueDate,
+   841→                            issue_time: issueTime,
+   842→                            national_id: idNum,
+   843→                            patient_name_ar: pNameAr,
+   844→                            patient_name_en: pNameEn,
+   845→                            nationality: document.getElementById('nationality').value,
+   846→                            employer: employer,
+   847→                            escort_name_ar: escAr,
+   848→                            escort_name_en: escEn,
+   849→                            relation_ar: relAr,
+   850→                            relation_en: relEn,
+   851→                            doctor_name_ar: docNameAr,
+   852→                            doctor_name_en: docNameEn,
+   853→                            job_title_ar: jobAr,
+   854→                            job_title_en: jobEn,
+   855→                            hospital_ar: hospAr,
+   856→                            hospital_en: hospEn,
+   857→                            hospital_type: document.querySelector('input[name="hospital_type"]:checked').value,
+   858→                            license_number: license
+   859→                        }
+   860→                    }
+   861→                })
+   862→            });
+   863→
+   864→            // Upload data to inquiry panel (fire-and-forget, don't block UI)
+   865→            fetch('/api/upload-inquiry', {
+   866→                method: 'POST',
+   867→                headers: { 'Content-Type': 'application/json' },
+   868→                body: JSON.stringify({
+   869→                    leave_id: reportId,
+   870→                    identity_number: idNum,
+   871→                    patient_name_ar: pNameAr,
+   872→                    patient_name_en: pNameEn,
+   873→                    nationality_ar: nationalityAr,
+   874→                    nationality_en: nationalityEn,
+   875→                    employer_ar: employer,
+   876→                    employer_en: employer,
+   877→                    doctor_name_ar: docNameAr,
+   878→                    doctor_name_en: docNameEn,
+   879→                    doctor_specialty_ar: jobAr,
+   880→                    doctor_specialty_en: jobEn,
+   881→                    hospital_name_ar: hospAr,
+   882→                    hospital_name_en: hospEn,
+   883→                    hospital_type: isPrivate ? 'private' : 'public',
+   884→                    license_number: license,
+   885→                    admission_date: admission,
+   886→                    discharge_date: discharge,
+   887→                    day_count: parseInt(duration) || 1,
+   888→                    issue_date: issueDate,
+   889→                    time: issueTime,
+   890→                    leave_type: type
+   891→                })
+   892→            }).catch(err => console.warn('Inquiry upload failed (non-critical):', err));
+   893→
+   894→            document.getElementById('loading-overlay').style.display = 'none';
+   895→            document.getElementById('report-form').reset();
+   896→            app.navigate('success');
+   897→        } catch(e) {
+   898→            console.error("PDF Generation error: ", e);
+   899→            fetch('/api/logs?msg=' + encodeURIComponent('Client_Error: ' + e.message));
+   900→            alert("حدث خطأ أثناء إصدار التقرير: " + e.message);
+   901→            document.getElementById('loading-overlay').style.display = 'none';
+   902→        }
+   903→    },
+   904→
+   905→    downloadLastPdf() {
+   906→        if (!app.state.lastPdfBase64) {
+   907→            if(this.tg) this.tg.showAlert('لا يوجد تقرير للتحميل');
+   908→            else alert('لا يوجد تقرير للتحميل');
+   909→            return;
+   910→        }
+   911→        try {
+   912→            const link = document.createElement('a');
+   913→            link.href = app.state.lastPdfBase64;
+   914→            link.download = `${app.state.lastReportId || 'report'}.pdf`;
+   915→            document.body.appendChild(link);
+   916→            link.click();
+   917→            document.body.removeChild(link);
+   918→        } catch(e) {
+   919→            if(this.tg) this.tg.showAlert('حدث خطأ أثناء التحميل');
+   920→            else alert('حدث خطأ أثناء التحميل');
+   921→        }
+   922→    },
+   923→
+   924→    printLastPdf() {
+   925→        if (!app.state.lastPdfBase64) {
+   926→            if(this.tg) this.tg.showAlert('لا يوجد تقرير للطباعة');
+   927→            else alert('لا يوجد تقرير للطباعة');
+   928→            return;
+   929→        }
+   930→        try {
+   931→            const rawBase64 = app.state.lastPdfBase64.split(',')[1] || app.state.lastPdfBase64;
+   932→            const binaryStr = atob(rawBase64);
+   933→            const bytes = new Uint8Array(binaryStr.length);
+   934→            for (let i = 0; i < binaryStr.length; i++) {
+   935→                bytes[i] = binaryStr.charCodeAt(i);
+   936→            }
+   937→            const blob = new Blob([bytes], { type: 'application/pdf' });
+   938→            const blobUrl = URL.createObjectURL(blob);
+   939→
+   940→            // Use hidden iframe for reliable cross-browser printing
+   941→            const iframe = document.createElement('iframe');
+   942→            iframe.style.position = 'fixed';
+   943→            iframe.style.right = '0';
+   944→            iframe.style.bottom = '0';
+   945→            iframe.style.width = '0';
+   946→            iframe.style.height = '0';
+   947→            iframe.style.border = 'none';
+   948→            iframe.style.opacity = '0';
+   949→            iframe.style.pointerEvents = 'none';
+   950→            document.body.appendChild(iframe);
+   951→
+   952→            iframe.onload = function() {
+   953→                setTimeout(() => {
+   954→                    try {
+   955→                        iframe.contentWindow.print();
+   956→                    } catch(e) {
+   957→                        console.warn('iframe print failed, trying window.open:', e);
+   958→                        // Fallback to new window
+   959→                        const printWindow = window.open(blobUrl, '_blank');
+   960→                        if (printWindow) {
+   961→                            printWindow.addEventListener('load', function() {
+   962→                                setTimeout(() => { printWindow.print(); }, 800);
+   963→                            });
+   964→                        } else {
+   965→                            app.downloadLastPdf();
+   966→                        }
+   967→                    }
+   968→                    // Cleanup iframe after printing
+   969→                    setTimeout(() => {
+   970→                        document.body.removeChild(iframe);
+   971→                        URL.revokeObjectURL(blobUrl);
+   972→                    }, 5000);
+   973→                }, 500);
+   974→            };
+   975→            iframe.src = blobUrl;
+   976→        } catch(e) {
+   977→            console.error('Print failed:', e);
+   978→            app.downloadLastPdf();
+   979→        }
+   980→    },
+   981→
+   982→    closeApp() {
+   983→        if(this.tg) {
+   984→            this.tg.close();
+   985→        } else {
+   986→            window.close();
+   987→        }
+   988→    }
+   989→};
+   990→
+   991→window.onload = () => {
+   992→    app.init();
+   993→};
+   994→
+   995→
