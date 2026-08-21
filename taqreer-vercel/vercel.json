@@ -63,7 +63,10 @@
     "api/report/[...slug].js": {
       "maxDuration": 10
     },
-    "api/user/[chatId]/**": {
+    "api/user/[chatId]/index.js": {
+      "maxDuration": 10
+    },
+    "api/user/[chatId]/package.js": {
       "maxDuration": 10
     }
   }
