@@ -30,11 +30,14 @@
     "api/send-existing-pdf.js": {
       "maxDuration": 30
     },
-    "api/generate-native-pdf.js": {
-      "maxDuration": 30
-    },
     "api/setup.js": {
       "maxDuration": 30
+    },
+    "api/upload-inquiry.js": {
+      "maxDuration": 10
+    },
+    "api/inquiry.js": {
+      "maxDuration": 10
     }
   }
 }

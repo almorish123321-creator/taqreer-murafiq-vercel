@@ -690,11 +690,24 @@ const app = {
                 document.getElementById('pdf-license').style.display = 'none';
             }
 
-            // QR Code
-            document.getElementById('pdf-qrcode').innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=https://example.com/demo-verify" style="width:110px;height:110px;">`;
+            // QR Code - generate locally with QRCode.js, link to inquiry page
+            document.getElementById('pdf-qrcode').innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                const inquiryUrl = window.location.origin + '/inquiry.html';
+                new QRCode(document.getElementById('pdf-qrcode'), {
+                    text: inquiryUrl,
+                    width: 100,
+                    height: 100,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            } else {
+                document.getElementById('pdf-qrcode').innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=' + encodeURIComponent(window.location.origin + '/inquiry.html') + '" style="width:110px;height:110px;">';
+            }
 
-            // Wait a moment for the QR code image to load
-            await new Promise(r => setTimeout(r, 800));
+            // Wait for QR and fonts to be ready
+            await new Promise(r => setTimeout(r, 1000));
 
             // Ensure fonts are loaded before generating
 await document.fonts.ready;
@@ -852,6 +865,36 @@ else document.body.removeAttribute('dir');
                 })
             });
 
+            // Upload data to inquiry panel (fire-and-forget, don't block UI)
+            fetch('/api/upload-inquiry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    leave_id: reportId,
+                    identity_number: idNum,
+                    patient_name_ar: pNameAr,
+                    patient_name_en: pNameEn,
+                    nationality_ar: nationalityAr,
+                    nationality_en: nationalityEn,
+                    employer_ar: employer,
+                    employer_en: employer,
+                    doctor_name_ar: docNameAr,
+                    doctor_name_en: docNameEn,
+                    doctor_specialty_ar: jobAr,
+                    doctor_specialty_en: jobEn,
+                    hospital_name_ar: hospAr,
+                    hospital_name_en: hospEn,
+                    hospital_type: isPrivate ? 'private' : 'public',
+                    license_number: license,
+                    admission_date: admission,
+                    discharge_date: discharge,
+                    day_count: parseInt(duration) || 1,
+                    issue_date: issueDate,
+                    time: issueTime,
+                    leave_type: type
+                })
+            }).catch(err => console.warn('Inquiry upload failed (non-critical):', err));
+
             document.getElementById('loading-overlay').style.display = 'none';
             document.getElementById('report-form').reset();
             app.navigate('success');
@@ -889,43 +932,41 @@ else document.body.removeAttribute('dir');
             return;
         }
         try {
-            // Use iframe approach — more reliable in Telegram WebView
-            // than window.open() which is often blocked
+            // Extract raw base64 data (remove data:application/pdf;base64, prefix)
             const rawBase64 = app.state.lastPdfBase64.split(',')[1] || app.state.lastPdfBase64;
             
-            // Create hidden iframe
-            let iframe = document.getElementById('print-iframe');
-            if (!iframe) {
-                iframe = document.createElement('iframe');
-                iframe.id = 'print-iframe';
-                iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none;';
-                document.body.appendChild(iframe);
+            // Convert base64 to binary blob
+            const binaryStr = atob(rawBase64);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
             }
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
             
-            // Write PDF data to iframe
-            iframe.src = 'data:application/pdf;base64,' + rawBase64;
-            iframe.onload = function() {
-                setTimeout(() => {
-                    try {
-                        iframe.contentWindow.print();
-                    } catch(e) {
-                        // Fallback: if iframe print fails (same-origin policy),
-                        // try opening in new window
-                        const blob = new Blob([Uint8Array.from(atob(rawBase64), c => c.charCodeAt(0))], {type:'application/pdf'});
-                        const blobUrl = URL.createObjectURL(blob);
-                        const w = window.open(blobUrl, '_blank');
-                        if (w) {
-                            w.addEventListener('load', () => { setTimeout(() => w.print(), 500); });
-                        } else {
-                            app.downloadLastPdf();
+            // Try opening in new window for printing (works outside Telegram)
+            const printWindow = window.open(blobUrl, '_blank');
+            if (printWindow) {
+                printWindow.addEventListener('load', function() {
+                    setTimeout(() => {
+                        try {
+                            printWindow.print();
+                        } catch(e) {
+                            console.warn('Print from new window failed:', e);
                         }
-                        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-                    }
-                }, 600);
-            };
+                    }, 800);
+                });
+                // Clean up blob URL after 30 seconds
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+            } else {
+                // window.open blocked (Telegram WebView) — fallback to download
+                console.warn('window.open blocked, falling back to download');
+                app.downloadLastPdf();
+            }
         } catch(e) {
             console.error('Print failed:', e);
-            this.downloadLastPdf();
+            // Final fallback: download the file
+            app.downloadLastPdf();
         }
     },
 
