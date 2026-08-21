@@ -928,10 +928,7 @@ else document.body.removeAttribute('dir');
             return;
         }
         try {
-            // Extract raw base64 data (remove data:application/pdf;base64, prefix)
             const rawBase64 = app.state.lastPdfBase64.split(',')[1] || app.state.lastPdfBase64;
-            
-            // Convert base64 to binary blob
             const binaryStr = atob(rawBase64);
             const bytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) {
@@ -939,29 +936,45 @@ else document.body.removeAttribute('dir');
             }
             const blob = new Blob([bytes], { type: 'application/pdf' });
             const blobUrl = URL.createObjectURL(blob);
-            
-            // Try opening in new window for printing (works outside Telegram)
-            const printWindow = window.open(blobUrl, '_blank');
-            if (printWindow) {
-                printWindow.addEventListener('load', function() {
-                    setTimeout(() => {
-                        try {
-                            printWindow.print();
-                        } catch(e) {
-                            console.warn('Print from new window failed:', e);
+
+            // Use hidden iframe for reliable cross-browser printing
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            iframe.style.opacity = '0';
+            iframe.style.pointerEvents = 'none';
+            document.body.appendChild(iframe);
+
+            iframe.onload = function() {
+                setTimeout(() => {
+                    try {
+                        iframe.contentWindow.print();
+                    } catch(e) {
+                        console.warn('iframe print failed, trying window.open:', e);
+                        // Fallback to new window
+                        const printWindow = window.open(blobUrl, '_blank');
+                        if (printWindow) {
+                            printWindow.addEventListener('load', function() {
+                                setTimeout(() => { printWindow.print(); }, 800);
+                            });
+                        } else {
+                            app.downloadLastPdf();
                         }
-                    }, 800);
-                });
-                // Clean up blob URL after 30 seconds
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-            } else {
-                // window.open blocked (Telegram WebView) — fallback to download
-                console.warn('window.open blocked, falling back to download');
-                app.downloadLastPdf();
-            }
+                    }
+                    // Cleanup iframe after printing
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                        URL.revokeObjectURL(blobUrl);
+                    }, 5000);
+                }, 500);
+            };
+            iframe.src = blobUrl;
         } catch(e) {
             console.error('Print failed:', e);
-            // Final fallback: download the file
             app.downloadLastPdf();
         }
     },
