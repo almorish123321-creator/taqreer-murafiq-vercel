@@ -1,0 +1,735 @@
+     1→  1001→    });
+     2→  1002→  };
+     3→  1003→
+     4→  1004→  // ============================================================
+     5→  1005→  // HEADER — identical to original
+     6→  1006→  // ============================================================
+     7→  1007→
+     8→  1008→  if (fs.existsSync(sehaLogo)) {
+     9→  1009→    doc.image(sehaLogo, 40, 40, { width: 150 });
+    10→  1010→  }
+    11→  1011→
+    12→  1012→  if (fs.existsSync(headerLogoPath)) {
+    13→  1013→    doc.image(headerLogoPath, (pageWidth - 260) / 2, 50, {
+    14→  1014→      width: 260,
+    15→  1015→      align: "center",
+    16→  1016→    });
+    17→  1017→  } else {
+    18→  1018→    doc
+    19→  1019→      .font(fontEnBold)
+    20→  1020→      .fontSize(16)
+    21→  1021→      .text("Kingdom of Saudi Arabia", 0, 75, { align: "center" });
+    22→  1022→  }
+    23→  1023→
+    24→  1024→  if (fs.existsSync(decoPath)) {
+    25→  1025→    doc.image(decoPath, pageWidth - 180, 40, { width: 170 });
+    26→  1026→  }
+    27→  1027→
+    28→  1028→  doc.moveDown(9);
+    29→  1029→
+    30→  1030→  // ============================================================
+    31→  1031→  // TITLE — Arabic + English
+    32→  1032→  // ============================================================
+    33→  1033→
+    34→  1034→  doc.fillColor("#306db5");
+    35→  1035→  drawTextAr("تقرير إجازة مرضية", 0, doc.y, {
+    36→  1036→    align: "center",
+    37→  1037→    weight: "bold",
+    38→  1038→    fontSize: 22,
+    39→  1039→    width: pageWidth,
+    40→  1040→  });
+    41→  1041→
+    42→  1042→  doc.moveDown(0.1);
+    43→  1043→
+    44→  1044→  doc
+    45→  1045→    .font(fontEnBold)
+    46→  1046→    .fillColor("#2c3e77")
+    47→  1047→    .fontSize(19)
+    48→  1048→    .text("Sick Leave Report", 0, doc.y, {
+    49→  1049→      align: "center",
+    50→  1050→      width: pageWidth,
+    51→  1051→    });
+    52→  1052→
+    53→  1053→  doc.moveDown(1.5);
+    54→  1054→
+    55→  1055→  // ============================================================
+    56→  1056→  // TABLE — exact column widths and row heights as original
+    57→  1057→  // ============================================================
+    58→  1058→
+    59→  1059→  const startX = 40;
+    60→  1060→  const startY = 250;
+    61→  1061→  const col1W = 160;
+    62→  1062→  const col3W = 160;
+    63→  1063→  const tableWidth = 760;
+    64→  1064→  const col2W = tableWidth - col1W - col3W;
+    65→  1065→
+    66→  1066→  let currentY = startY;
+    67→  1067→
+    68→  1068→  // drawRow — faithful port including the `isDoubleValue` branch.
+    69→  1069→  //
+    70→  1070→  // Options:
+    71→  1071→  //   - uppercaseEn: when true, the English value is rendered via
+    72→  1072→  //     renderLongNameCell — which avoids PDFKit's mid-word hyphen
+    73→  1073→  //     wrapping (e.g. "AL-QAHTANI" → "AL-" + "QAHTANI") and puts the
+    74→  1074→  //     majority of words on line 1 when wrapping is unavoidable.
+    75→  1075→  //     Used only for Name + Practitioner Name rows.
+    76→  1076→  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    77→  1077→  const drawRow = (
+    78→  1078→    labelEn: string,
+    79→  1079→    value: any,
+    80→  1080→    labelAr: string,
+    81→  1081→    isDoubleValue = false,
+    82→  1082→    bgColor: string | null = null,
+    83→  1083→    options: { uppercaseEn?: boolean } = {},
+    84→  1084→  ) => {
+    85→  1085→    const labelFontSize = 14;
+    86→  1086→    const valueFontSize = 14;
+    87→  1087→    const uppercaseEn = options.uppercaseEn === true;
+    88→  1088→
+    89→  1089→    doc.font(fontEnReg).fontSize(valueFontSize);
+    90→  1090→    let maxTextHeight = 0;
+    91→  1091→    const padding = 15;
+    92→  1092→
+    93→  1093→    // Measure English Value
+    94→  1094→    if (isDoubleValue && typeof value === "object") {
+    95→  1095→      const subColW = col2W / 2;
+    96→  1096→      let h1: number;
+    97→  1097→      if (uppercaseEn) {
+    98→  1098→        // Uppercase names: use text width to decide 1 vs 2 lines,
+    99→  1099→        // avoiding PDFKit's mid-word hyphen wrapping in heightOfString.
+   100→  1100→        // Bot uses size=13 for these cells (set_cell_font_and_color
+   101→  1101→        // line 543); we measure with 13 to match the actual render size.
+   102→  1102→        const uppercaseFontSize = 13;
+   103→  1103→        doc.font(fontEnReg).fontSize(uppercaseFontSize);
+   104→  1104→        const textW = doc.widthOfString(value.en || "-");
+   105→  1105→        const availW = subColW - 30;
+   106→  1106→        const singleH = doc.heightOfString("X", { width: subColW });
+   107→  1107→        h1 = textW <= availW ? singleH : singleH * 2;
+   108→  1108→      } else {
+   109→  1109→        h1 = doc.heightOfString(value.en || "-", { width: subColW - 20 });
+   110→  1110→      }
+   111→  1111→
+   112→  1112→      doc.font(fontArReg);
+   113→  1113→      const h2 = doc.heightOfString(value.ar || "-", { width: subColW - 20 });
+   114→  1114→
+   115→  1115→      maxTextHeight = Math.max(h1, h2);
+   116→  1116→    } else {
+   117→  1117→      maxTextHeight = doc.heightOfString(value || "-", { width: col2W - 20 });
+   118→  1118→    }
+   119→  1119→
+   120→  1120→    doc.font(fontEnBold).fontSize(labelFontSize);
+   121→  1121→    const labelH1 = doc.heightOfString(labelEn, { width: col1W - 20 });
+   122→  1122→
+   123→  1123→    doc.font(fontArBold).fontSize(labelFontSize);
+   124→  1124→    const labelH2 = doc.heightOfString(labelAr, { width: col3W - 20 });
+   125→  1125→
+   126→  1126→    maxTextHeight = Math.max(maxTextHeight, labelH1, labelH2);
+   127→  1127→
+   128→  1128→    const dynamicRowH = Math.max(40, maxTextHeight + padding);
+   129→  1129→
+   130→  1130→    if (bgColor) {
+   131→  1131→      doc.save();
+   132→  1132→      doc.rect(startX, currentY, tableWidth, dynamicRowH).fill(bgColor);
+   133→  1133→      doc.restore();
+   134→  1134→    }
+   135→  1135→
+   136→  1136→    doc
+   137→  1137→      .rect(startX, currentY, tableWidth, dynamicRowH)
+   138→  1138→      .strokeColor("#e0e0e0")
+   139→  1139→      .stroke();
+   140→  1140→    doc
+   141→  1141→      .moveTo(startX + col1W, currentY)
+   142→  1142→      .lineTo(startX + col1W, currentY + dynamicRowH)
+   143→  1143→      .stroke();
+   144→  1144→    doc
+   145→  1145→      .moveTo(startX + col1W + col2W, currentY)
+   146→  1146→      .lineTo(startX + col1W + col2W, currentY + dynamicRowH)
+   147→  1147→      .stroke();
+   148→  1148→
+   149→  1149→    // Labels
+   150→  1150→    doc.font(fontEnBold).fontSize(labelFontSize);
+   151→  1151→    const lH1 = doc.heightOfString(labelEn, { width: col1W - 30 });
+   152→  1152→    const y1 = currentY + (dynamicRowH - lH1) / 2;
+   153→  1153→
+   154→  1154→    doc.font(fontArBold).fontSize(labelFontSize);
+   155→  1155→    const lH2 = doc.heightOfString(labelAr, { width: col3W - 30 });
+   156→  1156→    const y2 = currentY + (dynamicRowH - lH2) / 2;
+   157→  1157→
+   158→  1158→    drawTextEn(labelEn, startX + 15, y1, {
+   159→  1159→      width: col1W - 30,
+   160→  1160→      align: "center",
+   161→  1161→      weight: "bold",
+   162→  1162→      fontSize: labelFontSize,
+   163→  1163→      color: "#2b5d88",
+   164→  1164→    });
+   165→  1165→    drawTextAr(labelAr, startX + col1W + col2W + 15, y2, {
+   166→  1166→      width: col3W - 30,
+   167→  1167→      align: "center",
+   168→  1168→      weight: "bold",
+   169→  1169→      fontSize: labelFontSize,
+   170→  1170→      color: "#2b5d88",
+   171→  1171→    });
+   172→  1172→
+   173→  1173→    // Value
+   174→  1174→    if (isDoubleValue && typeof value === "object") {
+   175→  1175→      const subColW = col2W / 2;
+   176→  1176→      doc
+   177→  1177→        .moveTo(startX + col1W + subColW, currentY)
+   178→  1178→        .lineTo(startX + col1W + subColW, currentY + dynamicRowH)
+   179→  1179→        .strokeColor("#e0e0e0")
+   180→  1180→        .stroke();
+   181→  1181→
+   182→  1182→      // English value (left side)
+   183→  1183→      if (uppercaseEn) {
+   184→  1184→        // Use renderLongNameCell: prevents mid-word hyphen breaks and
+   185→  1185→        // puts majority of words on line 1 when wrapping is needed.
+   186→  1186→        // Bot's set_cell_font_and_color uses size=13 for rows 5, 9
+   187→  1187→        // (Name, Practitioner Name) — we pass 13 here to match, instead
+   188→  1188→        // of the default valueFontSize (14) used for other value cells.
+   189→  1189→        renderLongNameCell(
+   190→  1190→          value.en || "-",
+   191→  1191→          startX + col1W + 15,
+   192→  1192→          currentY,
+   193→  1193→          subColW - 30,
+   194→  1194→          dynamicRowH,
+   195→  1195→          {
+   196→  1196→            align: "center",
+   197→  1197→            weight: "regular",
+   198→  1198→            fontSize: 13,
+   199→  1199→            color: "#29396e",
+   200→  1200→          },
+   201→  1201→        );
+   202→  1202→      } else {
+   203→  1203→        doc.font(fontEnReg).fontSize(valueFontSize);
+   204→  1204→        const vH1 = doc.heightOfString(value.en || "-", { width: subColW - 30 });
+   205→  1205→        const vy1 = currentY + (dynamicRowH - vH1) / 2;
+   206→  1206→        drawTextEn(value.en || "-", startX + col1W + 15, vy1, {
+   207→  1207→          width: subColW - 30,
+   208→  1208→          align: "center",
+   209→  1209→          weight: "regular",
+   210→  1210→          fontSize: valueFontSize,
+   211→  1211→          color: "#29396e",
+   212→  1212→        });
+   213→  1213→      }
+   214→  1214→
+   215→  1215→      // Arabic value (right side)
+   216→  1216→      const arText: string = value.ar || "-";
+   217→  1217→
+   218→  1218→      // For dates (numbers + dashes/slashes), always use English font to avoid boxes
+   219→  1219→      const cleanText = String(arText)
+   220→  1220→        .replace(/[^0-9\-\/]/g, "")
+   221→  1221→        .trim();
+   222→  1222→      let vH2 = 0;
+   223→  1223→      let isDate = false;
+   224→  1224→
+   225→  1225→      if (cleanText.length > 0 && /^[0-9\-\/]+$/.test(cleanText)) {
+   226→  1226→        isDate = true;
+   227→  1227→        doc.font(fontEnReg).fontSize(valueFontSize);
+   228→  1228→        vH2 = doc.heightOfString(cleanText, { width: subColW - 30 });
+   229→  1229→      } else {
+   230→  1230→        doc.font(fontArReg).fontSize(valueFontSize);
+   231→  1231→        vH2 = doc.heightOfString(arText, { width: subColW - 30 });
+   232→  1232→      }
+   233→  1233→
+   234→  1234→      const vy2 = currentY + (dynamicRowH - vH2) / 2;
+   235→  1235→
+   236→  1236→      if (isDate) {
+   237→  1237→        drawTextEn(cleanText, startX + col1W + subColW + 15, vy2, {
+   238→  1238→          width: subColW - 30,
+   239→  1239→          align: "center",
+   240→  1240→          weight: "regular",
+   241→  1241→          fontSize: valueFontSize,
+   242→  1242→          color: "#29396e",
+   243→  1243→        });
+   244→  1244→      } else {
+   245→  1245→        drawTextAr(arText, startX + col1W + subColW + 15, vy2, {
+   246→  1246→          width: subColW - 30,
+   247→  1247→          align: "center",
+   248→  1248→          weight: "regular",
+   249→  1249→          fontSize: valueFontSize,
+   250→  1250→          color: "#29396e",
+   251→  1251→        });
+   252→  1252→      }
+   253→  1253→    } else {
+   254→  1254→      // Single Value
+   255→  1255→      doc.font(fontEnReg).fontSize(valueFontSize);
+   256→  1256→      const vH = doc.heightOfString(value || "-", { width: col2W - 30 });
+   257→  1257→      const vY = currentY + (dynamicRowH - vH) / 2;
+   258→  1258→      drawTextEn(value || "-", startX + col1W + 15, vY, {
+   259→  1259→        width: col2W - 30,
+   260→  1260→        align: "center",
+   261→  1261→        weight: "regular",
+   262→  1262→        fontSize: valueFontSize,
+   263→  1263→        color: "#29396e",
+   264→  1264→      });
+   265→  1265→    }
+   266→  1266→
+   267→  1267→    currentY += dynamicRowH;
+   268→  1268→  };
+   269→  1269→
+   270→  1270→  // ============================================================
+   271→  1271→  // DATA PREPARATION — same formatDateOnly + getArabicDuration
+   272→  1272→  // ============================================================
+   273→  1273→
+   274→  1274→  const formatDateOnly = (dateStr: string | Date | undefined): string => {
+   275→  1275→    if (!dateStr) return "";
+   276→  1276→    const d = new Date(dateStr);
+   277→  1277→    if (isNaN(d.getTime())) return String(dateStr);
+   278→  1278→    const day = String(d.getDate()).padStart(2, "0");
+   279→  1279→    const month = String(d.getMonth() + 1).padStart(2, "0");
+   280→  1280→    const year = d.getFullYear();
+   281→  1281→    return `${day}-${month}-${year}`;
+   282→  1282→  };
+   283→  1283→
+   284→  1284→  const startDateFormatted = formatDateOnly(patient.date_from);
+   285→  1285→  const endDateFormatted = formatDateOnly(patient.date_to);
+   286→  1286→
+   287→  1287→  const getArabicDuration = (count: number | string): string => {
+   288→  1288→    // Match the Python bot's `calculate_duration` exactly — always uses
+   289→  1289→    // "يوم" (singular) regardless of count. The bot does NOT pluralize
+   290→  1290→    // to "يومان" or "أيام" — it always emits "{days} يوم (...)".
+   291→  1291→    const c = parseInt(String(count)) || 0;
+   292→  1292→    return `${c} يوم`;
+   293→  1293→  };
+   294→  1294→
+   295→  1295→  const duration = `${patient.day_count || 0} day (${startDateFormatted} to ${endDateFormatted})`;
+   296→  1296→  const durText = getArabicDuration(patient.day_count);
+   297→  1297→
+   298→  1298→  // Arabic duration line — built in LOGICAL order, matching the bot's
+   299→  1299→  // `calculate_duration` (line 218):
+   300→  1300→  //     f"{days} يوم ( {LRM}{start}{LRM} إلى {LRM}{end}{LRM} )"
+   301→  1301→  //
+   302→  1302→  // We pass the raw logical string to drawMixedTextCharByChar, which
+   303→  1303→  // processes it via processArabicBiDi (arabic-reshaper + bidi-js) and
+   304→  1304→  // then renders it char-by-char with features:[] — environment-independent.
+   305→  1305→  //
+   306→  1306→  // Visual result on screen (left → right):
+   307→  1307→  //     "3 يوم ( 09-02-2026 إلى 11-02-2026 )"
+   308→  1308→  const LRM = "\u200e";
+   309→  1309→  const durationArLogical =
+   310→  1310→    `${patient.day_count || 1} يوم ( ${LRM}${startDateFormatted}${LRM} إلى ${LRM}${endDateFormatted}${LRM} )`;
+   311→  1311→
+   312→  1312→  // --- Row 1: Leave ID ---
+   313→  1313→  drawRow("Leave ID", patient.gsl_code, "رمز الإجازة");
+   314→  1314→
+   315→  1315→  // ============================================================
+   316→  1316→  // ROW 2 — Duration (Special Style) — exact copy of manual
+   317→  1317→  // piece-by-piece rendering used in the original.
+   318→  1318→  // ============================================================
+   319→  1319→
+   320→  1320→  const rowH = 45;
+   321→  1321→  const durFontSize = 13;
+   322→  1322→
+   323→  1323→  doc.save();
+   324→  1324→  doc.rect(startX, currentY, tableWidth, rowH).fill("#2c3e77");
+   325→  1325→
+   326→  1326→  // Labels (White)
+   327→  1327→  doc.font(fontEnBold).fontSize(durFontSize);
+   328→  1328→  const durLabelH1 = doc.heightOfString("Leave Duration", { width: col1W - 30 });
+   329→  1329→  const durY1 = currentY + (rowH - durLabelH1) / 2;
+   330→  1330→
+   331→  1331→  doc.font(fontArBold).fontSize(durFontSize);
+   332→  1332→  const durLabelH2 = doc.heightOfString("مدة الإجازة", { width: col3W - 30 });
+   333→  1333→  const durY2 = currentY + (rowH - durLabelH2) / 2;
+   334→  1334→
+   335→  1335→  drawTextEn("Leave Duration", startX + 15, durY1, {
+   336→  1336→    width: col1W - 30,
+   337→  1337→    align: "center",
+   338→  1338→    weight: "bold",
+   339→  1339→    fontSize: durFontSize,
+   340→  1340→    color: "#ffffff",
+   341→  1341→  });
+   342→  1342→  drawTextAr("مدة الإجازة", startX + col1W + col2W + 15, durY2, {
+   343→  1343→    width: col3W - 30,
+   344→  1344→    align: "center",
+   345→  1345→    weight: "bold",
+   346→  1346→    fontSize: durFontSize,
+   347→  1347→    color: "#ffffff",
+   348→  1348→  });
+   349→  1349→
+   350→  1350→  // Borders
+   351→  1351→  const subColW = col2W / 2;
+   352→  1352→  doc
+   353→  1353→    .moveTo(startX + col1W, currentY)
+   354→  1354→    .lineTo(startX + col1W, currentY + rowH)
+   355→  1355→    .strokeColor("#ffffff")
+   356→  1356→    .stroke();
+   357→  1357→  doc
+   358→  1358→    .moveTo(startX + col1W + subColW, currentY)
+   359→  1359→    .lineTo(startX + col1W + subColW, currentY + rowH)
+   360→  1360→    .stroke();
+   361→  1361→  doc
+   362→  1362→    .moveTo(startX + col1W + col2W, currentY)
+   363→  1363→    .lineTo(startX + col1W + col2W, currentY + rowH)
+   364→  1364→    .stroke();
+   365→  1365→
+   366→  1366→  // Values — English duration (left sub-col)
+   367→  1367→  // Bot uses size=13 for ALL cells in row 2 (labels AND values, English AND
+   368→  1368→  // Arabic) — see set_cell_font_and_color line 533 and render_mixed_font_cell_v2
+   369→  1369→  // line 502/504. We previously used durFontSize-1 (=12) for values, which
+   370→  1370→  // made the duration values smaller than the labels. Now matching bot: 13.
+   371→  1371→  //
+   372→  1372→  // CELL 1 (English) is now rendered with the SAME font family as CELL 2's
+   373→  1373→  // Latin/digit portion (Amiri-Latin) so the two cells share an identical
+   374→  1374→  // typographic look. We also center cell 1 vertically around the SAME
+   375→  1375→  // latinLineH that cell 2 uses (via alignWithSibling), guaranteeing the
+   376→  1376→  // two cells' digits sit at the exact same Y baseline.
+   377→  1377→  const fontCell1Latin = amiriAvailable ? fontAmiriLatinRegPath : fontEnReg;
+   378→  1378→  doc.font(fontCell1Latin).fontSize(durFontSize);
+   379→  1379→  const cell1LineH = doc.heightOfString("0", { width: subColW - 20 });
+   380→  1380→  const durValY1 = currentY + (rowH - cell1LineH) / 2;
+   381→  1381→
+   382→  1382→  doc.font(fontCell1Latin).fontSize(durFontSize).fillColor("#ffffff");
+   383→  1383→  doc.text(duration, startX + col1W + 10, durValY1, {
+   384→  1384→    width: subColW - 20,
+   385→  1385→    align: "center",
+   386→  1386→    lineBreak: false,
+   387→  1387→  });
+   388→  1388→
+   389→  1389→  // Arabic duration — rendered via drawMixedTextCharByChar for maximum
+   390→  1390→  // reliability across deployment environments.
+   391→  1391→  //
+   392→  1392→  // Why char-by-char (not drawMixedText):
+   393→  1393→  //   PDFKit's internal BiDi + `features:["rtla"]` path works in local
+   394→  1394→  //   tests but has been observed to FAIL in some serverless/production
+   395→  1395→  //   environments, producing:
+   396→  1396→  //     - Arabic letters in disconnected isolated forms (no cursive joining)
+   397→  1397→  //     - BiDi-reversed Arabic runs ("يوم" → "موي")
+   398→  1398→  //     - Garbled glyphs when the font fallback chain kicks in
+   399→  1399→  //
+   400→  1400→  //   drawMixedTextCharByChar bypasses these issues by:
+   401→  1401→  //     1. Pre-shaping the Arabic inside the function (via arabic-reshaper)
+   402→  1402→  //        → cursive joining is preserved even when each char is rendered
+   403→  1403→  //        individually (PDFKit's rtla cannot shape single chars).
+   404→  1404→  //     2. Rendering each char as a SEPARATE doc.text() call → a single
+   405→  1405→  //        char cannot be BiDi-reversed, so visual LTR == logical order.
+   406→  1406→  //     3. Using `features:[]` for Arabic chars → no rtla GSUB pass,
+   407→  1407→  //        which means no opportunity for the GSUB pass to fail/misshape.
+   408→  1408→  //
+   409→  1409→  // Strategy:
+   410→  1410→  //   - Input: raw `durationArLogical` (NOT pre-shaped, NOT BiDi-processed).
+   411→  1411→  //     Arabic letters are in their basic Unicode form (U+0600-U+06FF).
+   412→  1412→  //     The LRM (U+200E) marks are stripped inside drawMixedTextCharByChar.
+   413→  1413→  //   - `centerVertically: true` + `cellHeight: rowH` (45pt) centers the
+   414→  1414→  //     whole line block vertically inside the dark blue row, mirroring
+   415→  1415→  //     the bot's `self.write(height, char)` vertical distribution.
+   416→  1416→  //
+   417→  1417→  // Expected visual output (left → right):
+   418→  1418→  //     "2 يوم ( 20-09-2025 إلى 21-09-2025 )"
+   419→  1419→
+   420→  1420→  drawMixedTextCharByChar(durationArLogical, startX + col1W + subColW + 10, currentY, {
+   421→  1421→    width: subColW - 20,
+   422→  1422→    align: "center",
+   423→  1423→    fontSize: durFontSize,
+   424→  1424→    color: "#ffffff",
+   425→  1425→    weight: "regular",
+   426→  1426→    centerVertically: true,
+   427→  1427→    cellHeight: rowH,
+   428→  1428→    // Align cell 2's Latin digits with cell 1's digits (same baseline Y)
+   429→  1429→    alignWithSibling: true,
+   430→  1430→    // Use Amiri font family for Arabic words ("يوم", "إلى") and Latin digits
+   431→  1431→    useAmiri: true,
+   432→  1432→  });
+   433→  1433→
+   434→  1434→  doc.restore();
+   435→  1435→  currentY += rowH;
+   436→  1436→
+   437→  1437→  // ============================================================
+   438→  1438→  // DATA ROWS — exact sequence + bg colors as original
+   439→  1439→  // ============================================================
+   440→  1440→
+   441→  1441→  const admissionEn = formatDateOnly(patient.date_from);
+   442→  1442→  const admissionAr = admissionEn;
+   443→  1443→  drawRow("Admission Date", { en: admissionEn, ar: admissionAr }, "تاريخ الدخول", true, "#f7f7f7");
+   444→  1444→
+   445→  1445→  const dischargeEn = formatDateOnly(patient.date_to);
+   446→  1446→  const dischargeAr = dischargeEn;
+   447→  1447→  drawRow("Discharge Date", { en: dischargeEn, ar: dischargeAr }, "تاريخ الخروج", true);
+   448→  1448→
+   449→  1449→  // Issue Date
+   450→  1450→  const issueDateRaw = patient.issue_date || new Date();
+   451→  1451→  const issueDateStr = formatDateOnly(issueDateRaw as string | Date);
+   452→  1452→  drawRow("Issue Date", issueDateStr, "تاريخ إصدار التقرير");
+   453→  1453→
+   454→  1454→  // Name — bot applies .upper() to patient_name_en (matches Python:
+   455→  1455→  //   processed_data.get('patient_name_en', '').upper())
+   456→  1456→  // Only the English value is uppercased; Arabic value is unchanged.
+   457→  1457→  // uppercaseEn: true routes the English value through renderLongNameCell,
+   458→  1458→  // which avoids mid-word hyphen breaks and keeps short names on one line.
+   459→  1459→  drawRow(
+   460→  1460→    "Name",
+   461→  1461→    { en: (patient.name_en || "").toUpperCase(), ar: patient.name_ar || "" },
+   462→  1462→    "الاسم",
+   463→  1463→    true,
+   464→  1464→    "#f7f7f7",
+   465→  1465→    { uppercaseEn: true },
+   466→  1466→  );
+   467→  1467→
+   468→  1468→  drawRow("National ID / Iqama", patient.identity_number, "رقم الهوية / الإقامة");
+   469→  1469→
+   470→  1470→  let natEn = "-";
+   471→  1471→  let natAr = "-";
+   472→  1472→  if (patient.nationalityObj) {
+   473→  1473→    natEn = patient.nationalityObj.name_en;
+   474→  1474→    natAr = patient.nationalityObj.name_ar;
+   475→  1475→  }
+   476→  1476→  drawRow("Nationality", { en: natEn, ar: natAr }, "الجنسية", true, "#f7f7f7");
+   477→  1477→
+   478→  1478→  // Employer — empty → space, not "-"
+   479→  1479→  const employerArRaw =
+   480→  1480→    patient.employer !== undefined && patient.employer !== null
+   481→  1481→      ? String(patient.employer)
+   482→  1482→      : "";
+   483→  1483→  const employerEnRaw =
+   484→  1484→    patient.employer_en !== undefined && patient.employer_en !== null
+   485→  1485→      ? String(patient.employer_en)
+   486→  1486→      : "";
+   487→  1487→  const emptyIndicators = new Set([
+   488→  1488→    "",
+   489→  1489→    "غير محدد",
+   490→  1490→    "فارغ",
+   491→  1491→    "-",
+   492→  1492→    "None",
+   493→  1493→    "none",
+   494→  1494→    "null",
+   495→  1495→    "NULL",
+   496→  1496→    "Not Specified",
+   497→  1497→    "N/A",
+   498→  1498→    "n/a",
+   499→  1499→    "undefined",
+   500→  1500→  ]);
+   501→  1501→  const employerAr = emptyIndicators.has(employerArRaw.trim()) ? " " : employerArRaw;
+   502→  1502→  const employerEn = emptyIndicators.has(employerEnRaw.trim()) ? " " : employerEnRaw;
+   503→  1503→  drawRow(
+   504→  1504→    "Employer",
+   505→  1505→    { en: employerEn, ar: employerAr },
+   506→  1506→    "جهة العمل",
+   507→  1507→    true,
+   508→  1508→    "#f7f7f7",
+   509→  1509→  );
+   510→  1510→
+   511→  1511→  // Practitioner Name — bot applies .upper() to doctor_name_en (matches Python:
+   512→  1512→  //   processed_data.get("doctor_name_en", "").upper())
+   513→  1513→  // uppercaseEn: true routes the English value through renderLongNameCell.
+   514→  1514→  drawRow(
+   515→  1515→    "Practitioner Name",
+   516→  1516→    { en: (patient.doctor_name_en || "").toUpperCase(), ar: patient.doctor_name_ar },
+   517→  1517→    "اسم الممارس",
+   518→  1518→    true,
+   519→  1519→    "#f7f7f7",
+   520→  1520→    { uppercaseEn: true },
+   521→  1521→  );
+   522→  1522→
+   523→  1523→  drawRow(
+   524→  1524→    "Position",
+   525→  1525→    { en: patient.doctor_specialty_en, ar: patient.doctor_specialty_ar },
+   526→  1526→    "المسمى الوظيفي",
+   527→  1527→    true,
+   528→  1528→  );
+   529→  1529→
+   530→  1530→  // ============================================================
+   531→  1531→  // FOOTER — exact coordinates + structure as original
+   532→  1532→  // ============================================================
+   533→  1533→
+   534→  1534→  const footerY = pageHeight - 400;
+   535→  1535→  const centerX = pageWidth / 2;
+   536→  1536→  doc
+   537→  1537→    .moveTo(centerX, footerY)
+   538→  1538→    .lineTo(centerX, footerY + 150)
+   539→  1539→    .strokeColor("#e0e0e0")
+   540→  1540→    .stroke();
+   541→  1541→
+   542→  1542→  const leftCenterX = centerX / 2;
+   543→  1543→
+   544→  1544→  // QR — عند مسحه بأي كاميرا هاتف يفتح صفحة الاستعلامات العامة مباشرة.
+   545→  1545→  // The QR contains only the inquiry page URL (no code parameter) —
+   546→  1546→  // scanning it opens the general inquiry page where the user types
+   547→  1547→  // both their service code and ID manually.
+   548→  1548→  try {
+   549→  1549→    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://almoqeesehh.vercel.app";
+   550→  1550→    const qrData = `${baseUrl}/inquiry`;
+   551→  1551→    const qrImage = await QRCode.toDataURL(qrData);
+   552→  1552→    doc.image(qrImage, leftCenterX - 20, footerY, { width: 100 });
+   553→  1553→  } catch (qrErr) {
+   554→  1554→    console.error("Error generating QR code:", qrErr);
+   555→  1555→  }
+   556→  1556→
+   557→  1557→  drawTextAr(
+   558→  1558→    "للتحقق من بيانات التقرير يرجى التأكد من زيارة موقع منصة صحة الرسمي",
+   559→  1559→    leftCenterX - 125,
+   560→  1560→    footerY + 110,
+   561→  1561→    {
+   562→  1562→      width: 300,
+   563→  1563→      align: "center",
+   564→  1564→      weight: "bold",
+   565→  1565→      fontSize: 10,
+   566→  1566→      color: "#000000",
+   567→  1567→    },
+   568→  1568→  );
+   569→  1569→  drawTextEn(
+   570→  1570→    "To check the report please visit Seha's official website",
+   571→  1571→    leftCenterX - 100,
+   572→  1572→    footerY + 150,
+   573→  1573→    {
+   574→  1574→      width: 250,
+   575→  1575→      align: "center",
+   576→  1576→      weight: "bold",
+   577→  1577→      fontSize: 10,
+   578→  1578→      color: "#000000",
+   579→  1579→    },
+   580→  1580→  );
+   581→  1581→
+   582→  1582→  doc
+   583→  1583→    .fillColor("blue")
+   584→  1584→    .font(fontEnBold)
+   585→  1585→    .fontSize(9);
+   586→  1586→  // الرابط أسفل الـ QR — النص المعروض هو الرابط الرسمي لمنصة صحة،
+   587→  1587→  // لكن عند النقر عليه يفتح صفحة الاستعلام على موقعنا لتعبئة رمز الخدمة.
+   588→  1588→  const inquiryBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://almoqeesehh.vercel.app";
+   589→  1589→  const inquiryLink = `${inquiryBaseUrl}/inquiry`;
+   590→  1590→  doc.text("www.seha.sa/#/inquiries/slenquiry", leftCenterX - 110, footerY + 180, {
+   591→  1591→    width: 250,
+   592→  1592→    align: "center",
+   593→  1593→    link: inquiryLink,
+   594→  1594→    underline: true,
+   595→  1595→  });
+   596→  1596→
+   597→  1597→  // Right Footer (Hospital)
+   598→  1598→  const rightCenterX = centerX + centerX / 2;
+   599→  1599→  if (hospital && hospital.logo) {
+   600→  1600→    let ospLogoPath = hospital.logo;
+   601→  1601→    if (ospLogoPath.startsWith("/uploads")) {
+   602→  1602→      ospLogoPath = path.join(rootDir, "backend", ospLogoPath);
+   603→  1603→    }
+   604→  1604→    if (fs.existsSync(ospLogoPath)) {
+   605→  1605→      doc.image(ospLogoPath, rightCenterX - 50, footerY, {
+   606→  1606→        width: 100,
+   607→  1607→        height: 100,
+   608→  1608→        fit: [100, 100],
+   609→  1609→        align: "center",
+   610→  1610→      });
+   611→  1611→    }
+   612→  1612→  }
+   613→  1613→
+   614→  1614→  if (hospital) {
+   615→  1615→    drawTextAr(hospital.name_ar || "", rightCenterX - 125, footerY + 100, {
+   616→  1616→      width: 250,
+   617→  1617→      align: "center",
+   618→  1618→      weight: "bold",
+   619→  1619→      fontSize: 12,
+   620→  1620→      color: "#000000",
+   621→  1621→    });
+   622→  1622→    drawTextEn(hospital.name_en || "", rightCenterX - 125, footerY + 135, {
+   623→  1623→      width: 250,
+   624→  1624→      align: "center",
+   625→  1625→      weight: "bold",
+   626→  1626→      fontSize: 12,
+   627→  1627→      color: "#000000",
+   628→  1628→    });
+   629→  1629→
+   630→  1630→    // License number — only if present
+   631→  1631→    const rawLic =
+   632→  1632→      hospital.license_number !== undefined && hospital.license_number !== null
+   633→  1633→        ? String(hospital.license_number)
+   634→  1634→        : "";
+   635→  1635→    const licNum = emptyIndicators.has(rawLic.trim()) ? "" : rawLic.trim();
+   636→  1636→
+   637→  1637→    if (licNum) {
+   638→  1638→      // Render the full mixed line via drawMixedTextCharByChar for maximum
+   639→  1639→      // reliability. Noto Sans Arabic lacks ASCII digit glyphs (0-9), so
+   640→  1640→      // digits must be rendered with Times-Bold on the same baseline as
+   641→  1641→      // the Arabic. drawMixedTextCharByChar handles the per-char Arabic/
+   642→  1642→      // Latin split + baseline offset + Arabic pre-shaping.
+   643→  1643→      //
+   644→  1644→      // Logical input format (Arabic label first, colon, then digits):
+   645→  1645→      //     `${LRM}رقم الترخيص : ${licNum}`
+   646→  1646→      //
+   647→  1647→      // Why this order (Arabic label first, digits last):
+   648→  1648→      //   The user reported that the previous layout ("numbers before
+   649→  1649→      //   text") was wrong and asked for the reading order to be:
+   650→  1650→      //       text → colon → numbers
+   651→  1651→      //   In Arabic RTL reading, "text first" means the text is on the
+   652→  1652→      //   RIGHT (where RTL reading starts), and "numbers last" means the
+   653→  1653→      //   numbers are on the LEFT. So the visual LTR layout must be:
+   654→  1654→      //       "1410101201200443 : رقم الترخيص"
+   655→  1655→      //   (digits on the LEFT, colon in the middle, Arabic on the RIGHT)
+   656→  1656→      //
+   657→  1657→      //   bidi-js treats any paragraph starting with an Arabic char (or
+   658→  1658→      //   a sequence whose first strong char is Arabic) as RTL base
+   659→  1659→      //   direction. With RTL base, runs are placed right-to-left in
+   660→  1660→      //   logical order, so:
+   661→  1661→      //     - The Arabic run (first in logical) goes to the RIGHT side.
+   662→  1662→      //     - The colon (next) goes to the MIDDLE.
+   663→  1663→      //     - The digits run (last in logical) goes to the LEFT side.
+   664→  1664→      //   This produces exactly the desired visual layout.
+   665→  1665→      //
+   666→  1666→      //   The LRM (U+200E) prefix is defensive: bidi-js's paragraph-level
+   667→  1667→      //   detection appears to ignore it (both with and without LRM, the
+   668→  1668→      //   visual output is identical), but keeping it makes the intent
+   669→  1669→      //   explicit and protects against any future BiDi implementation
+   670→  1670→      //   that might honor LRM as a base-direction hint. The LRM is
+   671→  1671→      //   stripped automatically by drawMixedTextCharByChar (Cf char)
+   672→  1672→      //   AFTER BiDi processing, so it never renders as tofu.
+   673→  1673→      //
+   674→  1674→      //   The PREVIOUS layout used `${licNum} : رقم الترخيص` (digits
+   675→  1675→      //   first in logical), which produced the OPPOSITE visual:
+   676→  1676→      //   Arabic on LEFT, digits on RIGHT — read in RTL as
+   677→  1677→      //   "digits → colon → text" (numbers before text), which is what
+   678→  1678→      //   the user objected to.
+   679→  1679→      //
+   680→  1680→      // Why char-by-char (not drawMixedText):
+   681→  1681→      //   PDFKit's internal BiDi + `features:["rtla"]` path works in local
+   682→  1682→      //   tests but has been observed to FAIL in some production
+   683→  1683→      //   environments, producing garbled Arabic ("ص.يخزتلا م.ق.ر" instead
+   684→  1684→      //   of "رقم الترخيص") when the rtla GSUB pass doesn't apply shaping.
+   685→  1685→      //   drawMixedTextCharByChar pre-shapes the Arabic internally (via
+   686→  1686→      //   arabic-reshaper) and renders each char as a separate doc.text()
+   687→  1687→      //   call with `features:[]`, bypassing both BiDi reversal and rtla
+   688→  1688→      //   GSUB — so the visual output is identical in every environment.
+   689→  1689→      const LRM_LIC = "\u200e";
+   690→  1690→      const fullLine = `${LRM_LIC}رقم الترخيص : ${licNum}`;
+   691→  1691→
+   692→  1692→      drawMixedTextCharByChar(fullLine, rightCenterX - 125, footerY + 165, {
+   693→  1693→        width: 250,
+   694→  1694→        align: "center",
+   695→  1695→        weight: "bold",
+   696→  1696→        fontSize: 12,
+   697→  1697→        color: "#000000",
+   698→  1698→      });
+   699→  1699→    }
+   700→  1700→  }
+   701→  1701→
+   702→  1702→  // ============================================================
+   703→  1703→  // BOTTOM FOOTER — time + date + national info logo
+   704→  1704→  // ============================================================
+   705→  1705→
+   706→  1706→  const bottomY = pageHeight - 150;
+   707→  1707→  const now = new Date();
+   708→  1708→  const dateStr = now.toLocaleDateString("en-US", {
+   709→  1709→    weekday: "long",
+   710→  1710→    year: "numeric",
+   711→  1711→    month: "long",
+   712→  1712→    day: "numeric",
+   713→  1713→  });
+   714→  1714→  const timeStr = now.toLocaleTimeString("en-US", {
+   715→  1715→    hour: "2-digit",
+   716→  1716→    minute: "2-digit",
+   717→  1717→  });
+   718→  1718→
+   719→  1719→  doc.font(fontEnBold).fontSize(12).fillColor("#000000");
+   720→  1720→  doc.text(timeStr, 40, bottomY);
+   721→  1721→  doc.text(dateStr, 40, bottomY + 20);
+   722→  1722→
+   723→  1723→  if (fs.existsSync(nationalLogo)) {
+   724→  1724→    doc.image(nationalLogo, pageWidth - 160, bottomY - 20, { width: 120 });
+   725→  1725→  }
+   726→  1726→
+   727→  1727→  doc.end();
+   728→  1728→
+   729→  1729→  // Wait for the 'end' event before resolving
+   730→  1730→  return new Promise<Buffer>((resolve, reject) => {
+   731→  1731→    doc.on("end", () => resolve(Buffer.concat(chunks)));
+   732→  1732→    doc.on("error", reject);
+   733→  1733→  });
+   734→  1734→}
+   735→  1735→

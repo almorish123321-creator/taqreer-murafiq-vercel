@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the image provided, here is a detailed analysis of the document template (which appears to be a **WhatsApp Business/Telegram Bot interface** for a service called \"NanoBot\"):\n\n### 1. Exact Layout and Structure\n*   **Overall Container:** The content is displayed within a **chat bubble interface**. The main background is a textured green pattern (standard WhatsApp wallpaper).\n*   **Message Bubbles:**\n    *   **User Messages:** Green bubbles aligned to the right.\n    *   **System/Bot Messages:** White bubbles with rounded corners and a subtle drop shadow, aligned to the left. These contain the structured data.\n*   **Internal Structure:** The white \"document\" bubbles use a **vertical list layout**. Information is presented as key-value pairs, often preceded by emojis acting as icons.\n\n### 2. Header Content and Positioning\n*   **Top Bar (App Header):**\n    *   **Left:** Back arrow (not fully visible), Title \"**حالة حساب**\" (Account Status) or similar context.\n    *   **Right:** Video call, voice call, and menu dots icons.\n*   **Message Header (Inside Bubble):**\n    *   **Sender Name:** Located at the very top left of the white bubble (e.g., \"**حالة حساب :**\" followed by a user icon 👤).\n    *   **Timestamp:** Located at the bottom right corner of the bubble in small grey text (e.g., \"12:38 م\").\n\n### 3. Table Column Widths and Structure\nThere are no traditional grid tables. Instead, the data uses a **Definition List / Key-Value structure**:\n*   **Labels (Keys):** Right-aligned or inline text describing the field (e.g., \"الاشتراكات النشطة:\", \"رصيد النقاط:\").\n*   **Values (Left):** The data follows the label immediately or on the next line.\n*   **Pricing Lists:** For subscription lists, it uses a format like `• [Plan Name] → ([Price] [Currency])`. This acts as a pseudo-table where columns are separated by arrows (`→`) and parentheses.\n\n### 4. Colors Used (#Hex Approximations)\n*   **Background (Chat):** Light Sage Green `#DCE8DD` or `#E1FFC7` (depending on theme).\n*   **Bubble Background (User):** Soft Green `#DCF8C6`.\n*   **Bubble Background (Bot/System):** Pure White `#FFFFFF`.\n*   **Primary Text (Black):** `#111111` or `#000000` (High contrast).\n*   **Secondary Text (Meta):** Grey/Silver for timestamps and read receipts `#8696A0` or `#667781`.\n*   **Link Text:** Blue `#0084FF` or `#2AABEE` (Standard link blue).\n*   **Watermark Text (Red Overlay):** Red `#FF0000` (This is an overlay added to the image, not part of the original template).\n*   **Input Field Background:** White `#FFFFFF`.\n\n### 5. Font Sizes\n*   **Main Body Text:** Approximately **14px - 16px** (Mobile standard).\n*   **Headers/Titles:** Slightly bolder, same size or **16px - 18px**.\n*   **Timestamps/Meta Data:** Small, approximately **11px - 12px**.\n*   **Input Placeholder:** Standard size, greyed out (**16px**).\n\n### 6. Row Heights\n*   **Line Spacing:** Generous line height for readability, approximately **1.5x** the font size (approx **24px - 26px** per line).\n*   **Item Spacing:** There is distinct padding between list items (subscriptions/prices) to separate them visually, roughly **8px - 10px** vertical margin between bullet points.\n\n### 7. Footer Content and Layout\n*   **Input Area (Bottom Fixed Footer):**\n    *   **Row 1 (Input):**\n        *   Left: Smiley face icon (blue circle background).\n        *   Center: Text field with placeholder \"**Message**\".\n        *   Right: Attachment icon (paperclip), Camera icon, Microphone icon (blue circle background).\n    *   **Row 2 (Quick Actions/Shortcuts):**\n        *   Horizontal scrollable chips/buttons.\n        *   Examples visible: \"**متجرد المتجر**\" (Visit Store) with cart icon 🛒, \"**كسر شات (الإدارية)**\" (Break Chat) with link icon 🔗.\n        *   Style: Light grey rounded rectangles with black text.\n\n### 8. Special Formatting\n*   **Emojis as Icons:** Heavy use of emojis to denote sections:\n    *   ✅ Green Checkmark for Active Subscriptions.\n    *   💰 Coin/Money bag for Balance/Credit.\n    *   💡 Lightbulb for Tips/Info.\n    *   🎁 Gift box for Referral info.\n    *   🛒 Shopping Cart for Store links.\n    *   ⭐ Star for \"Featured\" or \"Recommended\" plans.\n    *   📅 Calendar for Expiry dates.\n*   **Bold Text:** Used for labels and important values (like currency amounts) to make them pop against regular text.\n*   **RTL Support:** The entire interface is **Right-to-Left (RTL)** optimized for Arabic text alignment.\n*   **Watermark:** A large diagonal red watermark text (\"للتواصل واطلب...\") is overlaid on the center image, which is likely a security measure by the seller of this bot/template, not part of the functional UI.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787314302,
+  "id": "20260821201129ca74e175b7f14f26",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260821201129ca74e175b7f14f26",
+  "usage": {
+    "completion_tokens": 1209,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 3640,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 4849
+  }
+}
