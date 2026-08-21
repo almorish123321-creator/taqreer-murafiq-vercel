@@ -480,6 +480,12 @@ const app = {
 
         const reportId = `GSL${Math.floor(Math.random() * 10000000000)}`;
 
+        // Gather escort/relation data early (before any conditional blocks)
+        const escAr = document.getElementById('escort_name_ar') ? document.getElementById('escort_name_ar').value : '';
+        const escEn = document.getElementById('escort_name_en') ? document.getElementById('escort_name_en').value : '';
+        const relAr = document.getElementById('relation_ar') ? document.getElementById('relation_ar').value : '';
+        const relEn = document.getElementById('relation_en') ? document.getElementById('relation_en').value : '';
+
         // 2. Populate PDF Template
         document.getElementById('pdf-leave-id').innerText = reportId;
         
@@ -543,14 +549,12 @@ const app = {
             
             document.getElementById('pdf-name-label-en').innerText = "Companion Name";
             document.getElementById('pdf-name-label-ar').innerText = "اسم المرافق";
-            const escEn = document.getElementById('escort_name_en').value;
-            const escAr = document.getElementById('escort_name_ar').value;
             document.getElementById('pdf-name-en').innerText = escEn.toUpperCase();
             document.getElementById('pdf-name-ar').innerText = escAr;
             
             document.getElementById('pdf-relation-row').style.display = 'flex';
-            document.getElementById('pdf-relation-en').innerText = document.getElementById('relation_en').value;
-            document.getElementById('pdf-relation-ar').innerText = document.getElementById('relation_ar').value;
+            document.getElementById('pdf-relation-en').innerText = relEn;
+            document.getElementById('pdf-relation-ar').innerText = relAr;
 
             document.getElementById('pdf-doc-label-en').innerText = "Physician Name";
             document.getElementById('pdf-doc-label-ar').innerText = "اسم الطبيب المعالج";
@@ -583,7 +587,8 @@ const app = {
             doc: docNameAr,
             pos: jobAr
         });
-        const verifyUrl = `${window.location.origin}/verify.html?${verifyParams.toString()}`;
+        const inquiryBaseUrl = window.location.origin;
+        const verifyUrl = `${inquiryBaseUrl}/inquiry.html`;
         
         if (includeQR) {
             new QRCode(document.getElementById('pdf-qrcode'), {
@@ -600,15 +605,6 @@ const app = {
         document.getElementById('pdf-day-date').innerText = this.formatDateLabel(issueDate);
 
         // 3. Build structured reportData for server-side PDF generation
-        const escArEl = document.getElementById('escort_name_ar');
-        const escEnEl = document.getElementById('escort_name_en');
-        const relArEl = document.getElementById('relation_ar');
-        const relEnEl = document.getElementById('relation_en');
-        const escAr = escArEl ? escArEl.value : '';
-        const escEn = escEnEl ? escEnEl.value : '';
-        const relAr = relArEl ? relArEl.value : '';
-        const relEn = relEnEl ? relEnEl.value : '';
-
         const reportDataPayload = {
             titleAr: type === 'companion' ? 'تقرير مرافق مريض' : 'تقرير إجازة مرضية',
             titleEn: type === 'companion' ? 'Patient Companion Report' : 'Sick Leave Report',
@@ -741,7 +737,7 @@ window.scrollTo(0, 0);
             // Generate PNG using dom-to-image to preserve exact browser Arabic text rendering (RTL/CTL)
             // html2canvas is known to mangle Arabic cursive joining.
             let pdfBase64;
-            const PDF_W = 842, PDF_H = 1191; // A4 at 72dpi
+            const PDF_W = 842, PDF_H = 1150; // A3 proportions matching original PDFKit
             try {
                 const scale = 2; // high quality
                 const dataUrl = await domtoimage.toJpeg(pdfElement, {
