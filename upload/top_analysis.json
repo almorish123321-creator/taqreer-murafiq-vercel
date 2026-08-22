@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the provided image (3509px wide, 300dpi), here are the exact pixel measurements and their conversions to PDF points (1 point = 4.17 pixels):\n\n**Pixel Y Measurements (from top of image):**\n\n1.  **Y pixel of the bottom of the header logos:** **425 px**\n    *   *(PDF Points: ~101.9 pt)*\n2.  **Y pixel of the top of Arabic title text 'تقرير إجازة مرضية':** **580 px**\n    *   *(PDF Points: ~139.1 pt)*\n3.  **Y pixel of the bottom of Arabic title:** **670 px**\n    *   *(PDF Points: ~160.7 pt)*\n4.  **Y pixel of top of English title 'Sick Leave Report':** **710 px**\n    *   *(PDF Points: ~170.3 pt)*\n5.  **Y pixel of bottom of English title:** **775 px**\n    *   *(PDF Points: ~185.8 pt)*\n6.  **Y pixel of the top border of the data table:** **845 px**\n    *   *(PDF Points: ~202.6 pt)*\n\n**Approximate Text Heights:**\n\n7.  **Arabic title text height:** **~90 pixels** (approx. **21.6 points**)\n8.  **English title text height:** **~65 pixels** (approx. **15.6 points**)",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787407059,
+  "id": "202608222157343d5b87e440114cdc",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "202608222157343d5b87e440114cdc",
+  "usage": {
+    "completion_tokens": 316,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 5642,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 5958
+  }
+}

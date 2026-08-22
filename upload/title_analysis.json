@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the provided image, here are the exact details and measurements:\n\n**1. Y position of the Arabic title 'تقرير إجازة مرضية':**\nThe Arabic title is **not visible** in this specific crop. The current image only shows the top header section containing the logo and the top edge of the table's decorative border.\n\n**2. Y position of 'Sick Leave Report':**\nThe English subtitle is **also not visible** in this crop, as it would appear directly below the missing Arabic title.\n\n**3. Gap between them:**\nCannot be determined from the provided image section.\n\n**4. Y position where the table starts (first row top border):**\nThe visible light blue geometric line (the top border of the main content area/table) is located at approximately **Y = 260 pixels** (or ~**62 points**) from the top of the image.\n\n**5. Approximate title font sizes:**\nSince the titles are not present in this crop, their sizes cannot be measured. However, based on standard A3 medical report layouts at 300dpi, such titles are typically around **24-36pt** (100-150px).\n\n**6. Distance from the header logos bottom to the Arabic title:**\nThe bottom of the blue stacked-bar logo element is at approximately **Y = 920 pixels** (~**220 points**). Since the Arabic title is not shown, the gap cannot be calculated, but there would typically be a margin of roughly **40-60 points** (170-250px) between the logo baseline and the start of the title text in a full document view.\n\n*Note: All pixel-to-point conversions use the provided ratio of 1 point ≈ 4.17 pixels (based on 300dpi A3 dimensions).*",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787407021,
+  "id": "20260822215656fe7faed843eb4fc4",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "20260822215656fe7faed843eb4fc4",
+  "usage": {
+    "completion_tokens": 369,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 1161,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1530
+  }
+}

@@ -698,7 +698,7 @@ window.scrollTo(0, 0);
             // Generate PNG using dom-to-image to preserve exact browser Arabic text rendering (RTL/CTL)
             // html2canvas is known to mangle Arabic cursive joining.
             let pdfBase64;
-            const PDF_W = 842, PDF_H = 1150; // matching reference repo: A3 841.89x1150
+            const PDF_W = 842, PDF_H = 1190; // matching official PDF: A3 842x1190
             try {
                 const scale = 2; // high quality
                 const dataUrl = await domtoimage.toJpeg(pdfElement, {

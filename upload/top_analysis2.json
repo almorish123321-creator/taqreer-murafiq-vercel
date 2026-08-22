@@ -1,0 +1,28 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "Based on the image provided and the conversion factor (1pt = 4.17px), here are the estimated Y positions in PDF points:\n\n1.  **Header Logos End (Bottom of Kingdom Emblem):** Approximately **195 pt** (The bottom of the \"Kingdom of Saudi Arabia\" text).\n2.  **Top Edge of Arabic Title ('تقرير إجازة مرضية'):** Approximately **345 pt**\n3.  **Top Edge of English Title ('Sick Leave Report'):** Approximately **415 pt**\n4.  **First Data Table Row Begins (Top thin gray border):** Approximately **510 pt**\n\n**Table Analysis:**\n*   **Number of visible data rows:** **1** (The row containing \"Leave ID\", \"PSL25091906180\", and \"رقم الإجازة\").\n*   **Outer Top Border:** **Yes**, the table has a distinct, slightly thicker or more prominent outer top border compared to the thinner internal borders.\n*   **First Row Background Color:** **White**",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 1787407168,
+  "id": "2026082221592435b865593f094828",
+  "model": "glm-5v-turbo",
+  "object": "chat.completion",
+  "request_id": "2026082221592435b865593f094828",
+  "usage": {
+    "completion_tokens": 222,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 5672,
+    "prompt_tokens_details": {
+      "cached_tokens": 2
+    },
+    "total_tokens": 5894
+  }
+}
