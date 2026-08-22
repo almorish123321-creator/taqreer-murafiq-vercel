@@ -559,7 +559,7 @@ const app = {
         const gregoDis = this.formatGregorian(discharge);
         
         document.getElementById('pdf-duration-en').innerText = `${duration} day ( ${gregoAdm} to ${gregoDis} )`;
-        document.getElementById('pdf-duration-ar').innerText = `${duration} يوم ( ${gregoAdm} إلى ${gregoDis} )`;
+        document.getElementById('pdf-duration-ar').innerText = `( ${gregoAdm} إلى ${gregoDis} ) يوم ${duration}`;
 
         document.getElementById('pdf-admission-en').innerText = gregoAdm;
         document.getElementById('pdf-admission-ar').innerText = gregoAdm;
@@ -646,8 +646,8 @@ const app = {
         if (includeQR) {
             new QRCode(document.getElementById('pdf-qrcode'), {
                 text: verifyUrl,
-                width: 100,
-                height: 100,
+                width: 112,
+                height: 112,
                 colorDark : "#000000",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.L
@@ -696,7 +696,7 @@ window.scrollTo(0, 0);
             // Generate PNG using dom-to-image to preserve exact browser Arabic text rendering (RTL/CTL)
             // html2canvas is known to mangle Arabic cursive joining.
             let pdfBase64;
-            const PDF_W = 842, PDF_H = 1150; // A3 proportions matching original PDFKit
+            const PDF_W = 842, PDF_H = 1190; // matching reference PDF exactly
             try {
                 const scale = 2; // high quality
                 const dataUrl = await domtoimage.toJpeg(pdfElement, {
