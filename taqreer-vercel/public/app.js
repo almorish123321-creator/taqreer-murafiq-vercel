@@ -558,8 +558,10 @@ const app = {
         const gregoAdm = this.formatGregorian(admission);
         const gregoDis = this.formatGregorian(discharge);
         
-        document.getElementById('pdf-duration-en').innerText = `${duration} day ( ${gregoAdm} to ${gregoDis} )`;
-        document.getElementById('pdf-duration-ar').innerText = `( ${gregoAdm} إلى ${gregoDis} ) يوم ${duration}`;
+        document.getElementById('pdf-duration-en').innerText = `${duration} day (${gregoAdm} to ${gregoDis})`;
+        // Match reference repo logical order: "${days} يوم ( ${LRM}${start}${LRM} إلى ${LRM}${end}${LRM} )"
+        const LRM = '\u200e';
+        document.getElementById('pdf-duration-ar').innerText = `${duration} يوم ( ${LRM}${gregoAdm}${LRM} إلى ${LRM}${gregoDis}${LRM} )`;
 
         document.getElementById('pdf-admission-en').innerText = gregoAdm;
         document.getElementById('pdf-admission-ar').innerText = gregoAdm;
@@ -646,8 +648,8 @@ const app = {
         if (includeQR) {
             new QRCode(document.getElementById('pdf-qrcode'), {
                 text: verifyUrl,
-                width: 112,
-                height: 112,
+                width: 100,
+                height: 100,
                 colorDark : "#000000",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.L
@@ -696,7 +698,7 @@ window.scrollTo(0, 0);
             // Generate PNG using dom-to-image to preserve exact browser Arabic text rendering (RTL/CTL)
             // html2canvas is known to mangle Arabic cursive joining.
             let pdfBase64;
-            const PDF_W = 842, PDF_H = 1190; // matching reference PDF exactly
+            const PDF_W = 842, PDF_H = 1150; // matching reference repo: A3 841.89x1150
             try {
                 const scale = 2; // high quality
                 const dataUrl = await domtoimage.toJpeg(pdfElement, {
