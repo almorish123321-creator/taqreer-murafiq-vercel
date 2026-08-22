@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الاستعلام عن الإجازات المرضية - منصة صحة</title>
+    <title>صحة - الإجازات المرضية</title>
+    <meta name="description" content="هي منصة إلكترونية تخدم القطاع الصحي في المملكة من خلال تقديم خدمات إلكترونية معتمدة من قبل وزارة الصحة">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Original CSS files from almoqeesehh-main -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Original CSS files -->
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="assets/css/mo.css">
     <link rel="stylesheet" href="assets/css/ali.css">
     <link rel="stylesheet" href="assets/css/tyi.css">
     <link rel="stylesheet" href="assets/css/Ais.css">
+    <link rel="stylesheet" href="assets/css/inquiry.css">
     <style>
         :root {
             --primary-color: rgb(48, 109, 181);
@@ -22,11 +25,11 @@
             padding: 0;
             width: 100%;
             overflow-x: hidden;
-            direction: rtl;
             font-family: 'Cairo', sans-serif;
         }
-        html { direction: ltr !important; }
-        body { direction: rtl; }
+        body {
+            direction: rtl;
+        }
     </style>
 </head>
 <body>
@@ -39,38 +42,44 @@
 
 <!-- Header / Navbar -->
 <div style="z-index: 99; opacity: 1; transform: none;">
-    <nav class="header navbar-expand-lg navbar-light px-4">
+    <nav class="header navbar navbar-expand-lg navbar-light">
         <div class="nav-container">
-            <a href="https://www.seha.sa/#/">
+            <a class="d-lg-none sm-logo navbar-brand" href="/">
                 <img src="/assets/images/seha_logo.4dde29e5c4f38890ccf9787220bcc5be.svg" alt="logo" class="logo">
             </a>
             <div class="d-lg-none d-xl-none justify-content-end menu">
-                <button aria-controls="responsive-navbar-nav" type="button" aria-label="Toggle navigation" id="menu_but" class="d-inline-flex menu-img navbar-toggler collapsed" onclick="toggleMenu()">
+                <button aria-controls="responsive-navbar-nav" aria-label="Toggle navigation" type="button" class="d-inline-flex menu-img navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#responsive-navbar-nav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
             </div>
-            <div class="white justify-content-around navbar-collapse collapse" id="responsive-navbar-nav" style="display: none;">
-                <div class="navbar justify-content-around navbar-nav">
-                    <a data-rr-ui-event-key="1" class="link nav-link active" href="https://www.seha.sa/#/">
+            <div class="white justify-content-between navbar-collapse collapse" id="responsive-navbar-nav">
+                <div class="justify-content-between navbar-nav">
+                    <a class="d-none d-lg-block navbar-brand" href="/">
+                        <img src="/assets/images/seha_logo.4dde29e5c4f38890ccf9787220bcc5be.svg" alt="logo" class="logo">
+                    </a>
+                    <a data-rr-ui-event-key="1" class="link nav-link" href="https://www.seha.sa/#/">
                         الرئيسية
                     </a>
                     <a data-rr-ui-event-key="2" class="link nav-link" href="https://www.seha.sa/#/services">
                         الخدمات
                     </a>
-                    <a data-rr-ui-event-key="3" class="link nav-link" href="https://www.seha.sa/#/inquiries">
+                    <a data-rr-ui-event-key="3" class="link nav-link active" href="/inquiry">
                         الاستعلامات
                     </a>
                     <a data-rr-ui-event-key="4" class="link nav-link" href="https://seha.sa/#/faq">
                         الأسئلة الشائعة
                     </a>
+                    <a data-rr-ui-event-key="5" class="link nav-link" href="https://www.seha.sa/#/ContactUs">
+                        تواصل معنا
+                    </a>
                 </div>
-                <div class="navbar justify-content-end navbar-nav">
-                    <a data-rr-ui-event-key="6" class="nav-link" href="https://www.seha.sa/#/iamredirection/1">
+                <div class="justify-content-between navbar-nav">
+                    <a data-rr-ui-event-key="4" class="nav-link" href="https://www.seha.sa/#/iamredirection/1">
                         <p>إنشاء حساب</p>
                     </a>
-                    <a data-rr-ui-event-key="7" class="login nav-link" href="https://www.seha.sa/#/account/login" style="display: flex; align-items: center; gap: 5px;">
-                        <img src="/assets/" height="15" alt="logo" class="">
-                        <p style="margin: 0;">تسجيل الدخول</p>
+                    <a role="button" data-rr-ui-event-key="5" class="login nav-link" tabindex="0" href="https://www.seha.sa/#/account/login" style="cursor: pointer; opacity: 1; display: flex; align-items: center; gap: 5px;">
+                        <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='12.914'%20height='15.067'%20viewBox='0%200%2012.914%2015.067'%3e%3cdefs%3e%3cstyle%3e.a{fill:%23fff;}%3c/style%3e%3c/defs%3e%3cpath%20class='a'%20d='M10.1,6.592a3.637,3.637,0,0,1,.752.319,3.306,3.306,0,0,1,.748.614,3.956,3.956,0,0,1,.668.971,6.094,6.094,0,0,1,.462,1.446,9.776,9.776,0,0,1,.185,1.988,3.17,3.17,0,0,1-.841,2.216,2.647,2.647,0,0,1-2.026.921H2.867A2.647,2.647,0,0,1,.84,14.146,3.168,3.168,0,0,1,0,11.931,9.772,9.772,0,0,1,.185,9.942,6.1,6.1,0,0,1,.647,8.5a3.954,3.954,0,0,1,.668-.971,3.306,3.306,0,0,1,.748-.614,3.637,3.637,0,0,1,.752-.319,4.265,4.265,0,0,1-.324-3.956,4.258,4.258,0,0,1,2.3-2.3,4.259,4.259,0,0,1,3.338,0,4.262,4.262,0,0,1,2.3,2.3A4.267,4.267,0,0,1,10.1,6.592ZM6.457,1.076a3.11,3.11,0,0,0-2.283.946A3.112,3.112,0,0,0,3.228,4.3a3.107,3.107,0,0,0,.946,2.283,3.114,3.114,0,0,0,2.283.946A3.108,3.108,0,0,0,8.74,6.587,3.111,3.111,0,0,0,9.686,4.3,3.111,3.111,0,0,0,8.74,2.022,3.11,3.11,0,0,0,6.457,1.076Zm3.59,12.914a1.623,1.623,0,0,0,1.265-.6,2.141,2.141,0,0,0,.526-1.459,6.43,6.43,0,0,0-.660-3.17,2.205,2.205,0,0,0-1.9-1.219A4.158,4.158,0,0,1,6.457,8.609,4.158,4.158,0,0,1,3.632,7.542a2.206,2.206,0,0,0-1.9,1.219,6.431,6.431,0,0,0-.660,3.17A2.139,2.139,0,0,0,1.6,13.389a1.626,1.626,0,0,0,1.265.6h7.18Z'/%3e%3c/svg%3e" alt="logo">
+                        <p>تسجيل الدخول</p>
                     </a>
                 </div>
             </div>
@@ -82,7 +91,8 @@
 <div class="inner-page inquiries-container">
     <h1 class="heading">الإجازات المرضية</h1>
     <p class="sub-heading">
-        خدمة الاستعلام عن الإجازات المرضية تتيح لك الاستعلام عن حالة طلبك للإجازة ويمكنك طباعتها عن طريق تطبيق صحتي
+        خدمة الاستعلام عن الإجازات المرضية تتيح لك الاستعلام عن حالة طلبك
+        للإجازة ويمكنك طباعتها عن طريق تطبيق صحتي
     </p>
     <div class="row justify-content-center mt-1">
         <div class="col-md-5 p-4">
@@ -152,22 +162,22 @@
             <h3 class="heading">القائمة الرئيسية</h3>
             <ul class="links-wrapepr">
                 <li class="inquiry-li">
-                    <a class="nav-link" href="https://www.seha.sa/ui#/services">
+                    <a class="nav-link" href="https://www.seha.sa/#/services">
                         الخدمات
                     </a>
                 </li>
                 <li class="inquiry-li">
-                    <a class="nav-link" href="https://www.seha.sa/ui#/inquiries">
+                    <a class="nav-link" href="https://www.seha.sa/#/inquiries">
                         الاستعلامات
                     </a>
                 </li>
                 <li class="inquiry-li">
-                    <a class="nav-link" href="https://www.seha.sa/ui#/faq">
+                    <a class="nav-link" href="https://www.seha.sa/#/faq">
                         الأسئلة الشائعة
                     </a>
                 </li>
                 <li class="inquiry-li" style="border-bottom: none;">
-                    <a class="nav-link" href="https://www.seha.sa/ui#/ContactUs">
+                    <a class="nav-link" href="https://www.seha.sa/#/ContactUs">
                         تواصل معنا
                     </a>
                 </li>
@@ -205,7 +215,7 @@
                     <div class="social">
                         <button>
                             <a href="https://www.youtube.com/channel/UCb9ZrS2YcriYqIPIHNp9wcQ">
-                                <img alt="youtube icon" src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%3e%3cg%20id='Group_4247'%20data-name='Group_4247'%20transform='translate(-326%20-6335)'%3e%3cpath%20id='youtube'%20d='M6.848,12.169V9.444l2.62,1.368-2.62,1.358Zm5.754-3.2a2.094,2.094,0,0,0-.386-.963,1.388,1.388,0,0,0-.972-.411c-1.357-.1-3.393-.1-3.393-.1h0s-2.036,0-3.393.1a1.388,1.388,0,0,0-.972.411,2.1,2.1,0,0,0-.386.963,14.673,14.673,0,0,0-.1,1.57v.736a14.681,14.681,0,0,0,.1,1.57,2.094,2.094,0,0,0,.386.963,1.641,1.641,0,0,0,1.07.414c.776.074,3.3.1,3.3.1s2.038,0,3.4-.1a1.387,1.387,0,0,0,.972-.411,2.1,2.1,0,0,0,.386-.963,14.681,14.681,0,0,0,.1-1.57v-.736a14.665,14.665,0,0,0-.1-1.57Z'%20transform='translate(327%206333.5)'%20fill='%23f0f3f8'%20fill-rule='evenodd'/%3e%3cg%20id='Path_8137'%20data-name='Path_8137'%20transform='translate(326%206335)'%20fill='none'%20opacity='0'%3e%3cpath%20d='M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z'%20stroke='none'/%3e%3cpath%20d='M%209.000004768371582%200.4999980926513672%20C%204.313084602355957%200.4999980926513672%200.4999942779541016%204.31309700012207%200.4999942779541016%209.00003719329834%20C%200.4999942779541016%2013.68697738647461%204.313084602355957%2017.50007629394531%209.000004768371582%2017.50007629394531%20C%2013.68692493438721%2017.50007629394531%2017.50000381469727%2013.68697738647461%2017.50000381469727%209.00003719329834%20C%2017.50000381469727%204.31309700012207%2013.68692493438721%200.4999980926513672%209.000004768371582%200.4999980926513672%20M%209.000004768371582%20-1.9073486328125e-06%20C%2013.97056484222412%20-1.9073486328125e-06%2018.00000381469727%204.029457092285156%2018.00000381469727%209.00003719329834%20C%2018.00000381469727%2013.97061729431152%2013.97056484222412%2018.00007629394531%209.000004768371582%2018.00007629394531%20C%204.029444694519043%2018.00007629394531%20-5.7220458984375e-06%2013.97061729431152%20-5.7220458984375e-06%209.00003719329834%20C%20-5.7220458984375e-06%204.029457092285156%204.029444694519043%20-1.9073486328125e-06%209.000004768371582%20-1.9073486328125e-06%20Z'%20stroke='none'%20fill='%23f0f3f8'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e">
+                                <img alt="youtube icon" src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20width='18'%20height='18'%20viewBox='0%200%2018%2018'%3e%3cg%20id='Group_4247'%20data-name='Group%204247'%20transform='translate(-326%20-6335)'%3e%3cpath%20id='youtube'%20d='M6.848,12.169V9.444l2.62,1.368-2.62,1.358Zm5.754-3.2a2.094,2.094,0,0,0-.386-.963,1.388,1.388,0,0,0-.972-.411c-1.357-.1-3.393-.1-3.393-.1h0s-2.036,0-3.393.1a1.388,1.388,0,0,0-.972.411,2.1,2.1,0,0,0-.386.963,14.673,14.673,0,0,0-.1,1.57v.736a14.681,14.681,0,0,0,.1,1.57,2.094,2.094,0,0,0,.386.963,1.641,1.641,0,0,0,1.07.414c.776.074,3.3.1,3.3.1s2.038,0,3.4-.1a1.387,1.387,0,0,0,.972-.411,2.1,2.1,0,0,0,.386-.963,14.681,14.681,0,0,0,.1-1.57v-.736a14.665,14.665,0,0,0-.1-1.57Z'%20transform='translate(327%206333.5)'%20fill='%23f0f3f8'%20fill-rule='evenodd'/%3e%3cg%20id='Path_8137'%20data-name='Path%208137'%20transform='translate(326%206335)'%20fill='none'%20opacity='0'%3e%3cpath%20d='M9,0A9,9,0,1,1,0,9,9,9,0,0,1,9,0Z'%20stroke='none'/%3e%3cpath%20d='M%209.000004768371582%200.4999980926513672%20C%204.313084602355957%200.4999980926513672%200.4999942779541016%204.31309700012207%200.4999942779541016%209.00003719329834%20C%200.4999942779541016%2013.68697738647461%204.313084602355957%2017.50007629394531%209.000004768371582%2017.50007629394531%20C%2013.68692493438721%2017.50007629394531%2017.50000381469727%2013.68697738647461%2017.50000381469727%209.00003719329834%20C%2017.50000381469727%204.31309700012207%2013.68692493438721%200.4999980926513672%209.000004768371582%200.4999980926513672%20M%209.000004768371582%20-1.9073486328125e-06%20C%2013.97056484222412%20-1.9073486328125e-06%2018.00000381469727%204.029457092285156%2018.00000381469727%209.00003719329834%20C%2018.00000381469727%2013.97061729431152%2013.97056484222412%2018.00007629394531%209.000004768371582%2018.00007629394531%20C%204.029444694519043%2018.00007629394531%20-5.7220458984375e-06%2013.97061729431152%20-5.7220458984375e-06%209.00003719329834%20C%20-5.7220458984375e-06%204.029457092285156%204.029444694519043%20-1.9073486328125e-06%209.000004768371582%20-1.9073486328125e-06%20Z'%20stroke='none'%20fill='%23f0f3f8'/%3e%3c/g%3e%3c/g%3e%3c/svg%3e">
                             </a>
                         </button>
                         <button>
@@ -234,18 +244,9 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 <script src="assets/css/moh.js"></script>
 <script>
-    // Menu toggle
-    function toggleMenu() {
-        const nav = document.getElementById('responsive-navbar-nav');
-        if (nav.style.display === 'none' || nav.style.display === '') {
-            nav.style.display = 'block';
-        } else {
-            nav.style.display = 'none';
-        }
-    }
-
     // Hide error when typing
     document.addEventListener('DOMContentLoaded', function() {
         const serviceCodeInput = document.getElementById('service_code');
