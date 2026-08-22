@@ -715,7 +715,7 @@ window.scrollTo(0, 0);
                 // Create jsPDF and inject the perfectly rendered image
                 const jsPDFClass = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
                 if (!jsPDFClass) throw new Error("jsPDF not loaded");
-                const pdf = new jsPDFClass({ unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait' });
+                const pdf = new jsPDFClass({ unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait', hotfixes: ["px_scaling"] });
                 pdf.addImage(dataUrl, 'JPEG', 0, 0, PDF_W, PDF_H);
                 pdfBase64 = pdf.output('datauristring');
             } catch (fallbackErr) {
@@ -725,7 +725,7 @@ window.scrollTo(0, 0);
                     filename: 'sickLeaves.pdf',
                     image: { type: 'jpeg', quality: 1 },
                     html2canvas: { scale: 2, useCORS: true, letterRendering: false },
-                    jsPDF: { unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait' }
+                    jsPDF: { unit: 'px', format: [PDF_W, PDF_H], orientation: 'portrait', hotfixes: ["px_scaling"] }
                 };
                 pdfBase64 = await html2pdf().from(pdfElement).set(opt).outputPdf('datauristring');
             }
